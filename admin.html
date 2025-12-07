@@ -1,0 +1,2807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenith Labs</title>
+    <link rel="icon" href="ouroboros.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Security Headers (Note: Some headers like frame-ancestors and X-Frame-Options only work via HTTP headers) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://fonts.googleapis.com https://supabase.co https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://supabase.co ws://localhost:4000 http://localhost:4000 https://cdn.jsdelivr.net https://accounts.google.com;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=()">
+<style>
+    .hardware-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        min-height: 280px;
+    }
+    
+    .hardware-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .hardware-card.connected {
+        border-color: #28a745 !important;
+        background-color: #f8fff9 !important;
+    }
+    
+    .hardware-card.disconnected {
+        border-color: #dc3545 !important;
+        background-color: #fff8f8 !important;
+    }
+    
+    .badge.bg-success {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    .hardware-status-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .hardware-status-table td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    
+    /* Simple Sidebar Styles - No Lag */
+    .nav-pills .nav-link {
+        color: #1a1a1a;
+        border-radius: 0;
+        padding: 1.25rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-left: 4px solid transparent;
+        border-right: none;
+        border-top: none;
+        border-bottom: 1px solid #e8e8e8;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #ffffff;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: relative;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .nav-pills .nav-link .nav-icon {
+        flex-shrink: 0;
+        margin-right: auto;
+    }
+    
+    .nav-pills .nav-link span:not(.nav-icon) {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .nav-pills .nav-link:hover {
+        background: #007bff;
+        color: #ffffff;
+        border-left-color: #ffffff;
+    }
+    
+    .nav-pills .nav-link.active {
+        background: #ffffff;
+        color: #1a1a1a;
+        border-left: 4px solid #007bff;
+        position: relative;
+    }
+    
+    .nav-pills .nav-link.active:hover {
+        background: #007bff;
+        color: #ffffff;
+        border-left-color: #ffffff;
+    }
+    
+    /* Ensure all sidebar buttons are simple */
+    .nav-pills .nav-link:focus,
+    .nav-pills .nav-link:active,
+    .nav-pills .nav-link:visited {
+        background: #ffffff;
+        color: #1a1a1a;
+    }
+    
+    /* All buttons consistent behavior */
+    #dashboard-tab,
+    #suppliers-tab,
+    #sales-journal-tab,
+    #expense-journal-tab,
+    #audit-tab,
+    #settings-tab,
+    #backup-sales-tab,
+    #inventory-dropdown {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    #dashboard-tab:hover,
+    #suppliers-tab:hover,
+    #sales-journal-tab:hover,
+    #expense-journal-tab:hover,
+    #audit-tab:hover,
+    #settings-tab:hover,
+    #backup-sales-tab:hover,
+    #inventory-dropdown:hover {
+        background: #f8f9fa !important;
+        color: #1a1a1a !important;
+    }
+    
+    #dashboard-tab.active,
+    #suppliers-tab.active,
+    #inventory-dropdown.active,
+    #sales-journal-tab.active,
+    #expense-journal-tab.active,
+    #top-selling-tab.active,
+    #audit-logs-tab.active,
+    #void-item-tab.active,
+    #settings-tab.active,
+    #backup-sales-tab.active {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+        border-left: 4px solid #007bff !important;
+    }
+    
+    /* Logout button styling */
+    #logout-btn {
+        margin-top: 0.5rem;
+    }
+    
+    /* Dropdown container same width */
+    .dropdown {
+        width: 100%;
+    }
+    
+    .dropdown .nav-link {
+        width: 100% !important;
+    }
+    
+    /* Simple dropdown styles */
+    .dropdown-menu {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        width: 100%;
+        min-width: 100%;
+    }
+    
+    .dropdown-item {
+        color: #1a1a1a;
+        padding: 8px 16px;
+        cursor: pointer;
+        width: 100%;
+        text-align: center;
+        background: #333333;
+        color: #ffffff;
+    }
+    
+    .dropdown-item:hover {
+        background: #007bff;
+        color: #ffffff;
+    }
+    
+    /* Ensure dropdown items match inventory button width */
+    .dropdown-menu .dropdown-item {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+    
+    /* Trend chart height */
+    #trendChart {
+        height: 550px !important;
+    }
+    
+    /* All chart canvases height */
+    .chart-container canvas {
+        height: 550px !important;
+    }
+    
+    .nav-pills .nav-link:first-child {
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        border-top: 1px solid #e8e8e8;
+    }
+    
+    .nav-pills .nav-link:last-child {
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        border-bottom: 1px solid #e8e8e8;
+    }
+    
+    .nav-pills {
+        flex-direction: column !important;
+        padding: 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        overflow: hidden;
+        position: relative;
+        display: flex !important;
+        flex-flow: column nowrap !important;
+    }
+    
+    .nav-pills::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #0056b3 0%, #007bff 50%, #0056b3 100%);
+    }
+    
+    .sidebar-card {
+        border: none;
+        box-shadow: none;
+        border-radius: 0;
+        background: transparent;
+    }
+    
+    .sidebar-card .card-body {
+        padding: 0;
+    }
+    
+    .sidebar-header {
+        background: linear-gradient(135deg, #0056b3 0%, #007bff 50%, #0056b3 100%);
+        border-bottom: 3px solid #004085;
+        font-weight: 700;
+        color: #ffffff;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+        padding: 1rem 1.5rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    
+    .nav-icon {
+        font-size: 1.25rem;
+        width: 2rem;
+        text-align: center;
+        opacity: 0.9;
+        transition: all 0.3s ease;
+        font-family: 'Material Icons';
+        font-weight: normal;
+        font-style: normal;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-feature-settings: 'liga';
+        font-feature-settings: 'liga';
+        -webkit-font-smoothing: antialiased;
+    }
+    
+    .nav-pills .nav-link:hover .nav-icon {
+        opacity: 1;
+        transform: scale(1.1);
+        filter: drop-shadow(0 2px 4px rgba(0, 86, 179, 0.3));
+    }
+    
+    .nav-pills .nav-link.active .nav-icon {
+        opacity: 1;
+        filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.5));
+        transform: scale(1.05);
+    }
+    
+    /* Professional Admin Header - Modern Design */
+    .admin-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+        border-bottom: 3px solid #3b82f6;
+        padding: 1rem 0;
+        margin-bottom: 1rem;
+        box-shadow: 0 8px 32px rgba(30, 58, 138, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
+        height: 70px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .admin-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+        animation: shimmer 3s ease-in-out infinite;
+    }
+    
+    .admin-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+            radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+        pointer-events: none;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    .admin-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        letter-spacing: -0.5px;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .admin-title span {
+        color: #93c5fd;
+        font-weight: 300;
+    }
+    
+    .mobile-sidebar-toggle {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        position: relative;
+        z-index: 2;
+    }
+    
+    .mobile-sidebar-toggle:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-professional {
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        border: none;
+        position: relative;
+        z-index: 2;
+        backdrop-filter: blur(10px);
+    }
+    
+    .btn-success.btn-professional {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-success.btn-professional:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+    
+    .btn-outline-danger.btn-professional {
+        background: #dc2626;
+        border: 1px solid #dc2626;
+        color: #ffffff;
+        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+    }
+    
+    .btn-outline-danger.btn-professional:hover {
+        background: #b91c1c;
+        border-color: #b91c1c;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+    }
+    
+    .admin-header .d-flex {
+        position: relative;
+        z-index: 2;
+    }
+    
+    /* Header layout with centered title */
+    .admin-header .d-flex.justify-content-between {
+        width: 100%;
+    }
+    
+    .admin-header .d-flex.justify-content-between > div {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    /* Hide mobile toggle when title is centered */
+    .admin-header .mobile-sidebar-toggle {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+    }
+    
+    @media (max-width: 768px) {
+        .admin-header {
+            height: auto;
+            padding: 1.25rem 0;
+        }
+        
+        .admin-title {
+            font-size: 1.5rem;
+        }
+        
+        /* Keep title centered */
+        .admin-header .d-flex.justify-content-between > div {
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .admin-header .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .admin-title {
+            font-size: 1.25rem;
+            text-align: center;
+        }
+        
+        .mobile-sidebar-toggle {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        /* Mobile title centering */
+        .admin-header .d-flex.justify-content-between > div {
+            justify-content: center;
+            position: relative;
+        }
+    }
+    
+    /* Mobile responsiveness - Professional Blue & Black Theme */
+    @media (max-width: 767.98px) {
+        #adminTabs {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            z-index: 1050;
+            transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            border-radius: 0;
+            box-shadow: 4px 0 30px rgba(0, 86, 179, 0.2);
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-right: 3px solid #0056b3;
+            flex-direction: column !important;
+            display: flex !important;
+            flex-flow: column nowrap !important;
+        }
+        
+        #adminTabs.show {
+            left: 0;
+        }
+        
+        .main-content {
+            margin-left: 0;
+        }
+        
+        .mobile-sidebar-toggle {
+            display: block !important;
+            background: linear-gradient(135deg, #0056b3 0%, #007bff 50%, #0056b3 100%);
+            border: none;
+            color: #ffffff;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(0, 86, 179, 0.2);
+        }
+        
+        .mobile-sidebar-toggle:hover {
+            background: linear-gradient(135deg, #004085 0%, #0056b3 50%, #004085 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 86, 179, 0.3);
+        }
+        
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 86, 179, 0.8) 0%, rgba(0, 123, 255, 0.6) 100%);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+    }
+    
+    @media (min-width: 768px) {
+        .mobile-sidebar-toggle {
+            display: none !important;
+        }
+        
+        .admin-header {
+            padding: 0.75rem 0;
+            height: 100px;
+        }
+        
+        #adminTabs {
+            height: calc(100vh - 120px);
+            position: sticky;
+            top: 1rem;
+        }
+    }
+    
+    /* White background for all tab-content */
+    .tab-content {
+        background: #ffffff !important;
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+    }
+    
+    /* White background for all tab-panes */
+    .tab-pane {
+        background: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+        margin-left: 0 !important;
+        padding: 1rem !important;
+    }
+    
+    /* Align tab-content with sidebar */
+    .admin-main {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .admin-main .tab-content {
+        flex: 1;
+        margin-left: 0 !important;
+    }
+    
+    /* Black text for "Manage items, prices, stock, and categories" */
+    #inventory .text-muted {
+        color: #1a1a1a !important;
+    }
+    
+    /* Black text for all tab-pane descriptions */
+    .tab-pane .text-muted {
+        color: #1a1a1a !important;
+    }
+    
+    /* White text for card descriptions in tab-panes */
+    .tab-pane .card-text {
+        color: #ffffff !important;
+    }
+    
+    /* White text for small text in tab-panes */
+    .tab-pane .small {
+        color: #ffffff !important;
+    }
+    
+    /* Black text for all h5 headings */
+    .tab-pane h5 {
+        color: #1a1a1a !important;
+    }
+    
+    /* Black text for h5 in cards */
+    .tab-pane .card-title {
+        color: #1a1a1a !important;
+    }
+    
+    /* Black text for h5 globally */
+    h5 {
+        color: #1a1a1a !important;
+    }
+    
+    /* Black text for "Sold items cost difference minus expenses" */
+    .tab-pane .card-text.text-muted {
+        color: #1a1a1a !important;
+    }
+
+    /* Modern Financial Chart Styles */
+    .modern-card {
+        border-radius: 16px !important;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none !important;
+        background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%) !important;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .modern-card-header {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #1e3a8a 100%) !important;
+        border: none !important;
+        padding: 1.5rem !important;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .modern-card-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+        z-index: 1;
+    }
+
+    .modern-card-header > * {
+        position: relative;
+        z-index: 2;
+    }
+
+    .modern-title {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        font-size: 1.5rem !important;
+        margin-bottom: 0.25rem !important;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        letter-spacing: -0.5px;
+    }
+
+    .modern-subtitle {
+        color: rgba(255,255,255,0.9) !important;
+        font-size: 0.95rem !important;
+        font-weight: 400 !important;
+        opacity: 0.9;
+    }
+
+    .modern-period-selector {
+        position: relative;
+    }
+
+    .modern-select {
+        background: rgba(255,255,255,0.15) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 2.5rem 0.5rem 1rem !important;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        min-width: 140px;
+    }
+
+    .modern-select:focus {
+        background: rgba(255,255,255,0.25) !important;
+        border-color: rgba(255,255,255,0.4) !important;
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
+        outline: none;
+    }
+
+    .modern-select option {
+        background: #667eea !important;
+        color: #ffffff !important;
+    }
+
+    .modern-btn-primary {
+        background: rgba(255,255,255,0.15) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 1.25rem !important;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .modern-btn-primary:hover {
+        background: rgba(255,255,255,0.25) !important;
+        border-color: rgba(255,255,255,0.4) !important;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .modern-btn-primary:focus {
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
+        outline: none;
+    }
+
+    .modern-card-body {
+        padding: 2rem !important;
+        background: #ffffff !important;
+    }
+
+    .modern-chart-container {
+        position: relative;
+        height: 450px !important;
+        background: linear-gradient(145deg, #fafbfc 0%, #f8f9fa 100%);
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .modern-stat-card {
+        border-radius: 12px !important;
+        padding: 1.5rem !important;
+        border: none !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .modern-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+
+    .modern-stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+        pointer-events: none;
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    }
+
+    .bg-gradient-danger {
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%) !important;
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%) !important;
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: #ffffff;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .stat-details {
+        flex: 1;
+    }
+
+    .stat-label {
+        color: rgba(255,255,255,0.9) !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        margin-bottom: 0.25rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+        color: #ffffff !important;
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Enhanced Chart Canvas Styling */
+    .modern-chart-container canvas {
+        border-radius: 8px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .modern-card-header {
+            padding: 1rem 1.5rem !important;
+        }
+        
+        .modern-title {
+            font-size: 1.25rem !important;
+        }
+        
+        .modern-subtitle {
+            font-size: 0.875rem !important;
+        }
+        
+        .modern-card-body {
+            padding: 1.5rem !important;
+        }
+        
+        .modern-chart-container {
+            height: 350px !important;
+            padding: 0.75rem;
+        }
+        
+        .stat-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.75rem;
+        }
+        
+        .stat-icon {
+            width: 45px;
+            height: 45px;
+            font-size: 1.125rem;
+        }
+        
+        .stat-value {
+            font-size: 1.25rem !important;
+        }
+    }
+    
+    /* ===== MODERN FINANCIAL ANALYTICS DESIGN ===== */
+    
+    .financial-analytics-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        margin-top: 2rem;
+    }
+    
+    .analytics-header {
+        margin-bottom: 2rem;
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+    
+    .header-text .analytics-title {
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .header-text .analytics-subtitle {
+        color: #64748b;
+        font-size: 1rem;
+        margin: 0;
+        font-weight: 500;
+    }
+    
+    .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .period-selector-wrapper {
+        position: relative;
+    }
+    
+    .period-selector {
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 150px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .period-selector:hover {
+        border-color: #3b82f6;
+        background: rgba(255, 255, 255, 1);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+    }
+    
+    .period-selector:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+    
+    .refresh-btn {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    .refresh-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+    
+    .refresh-btn:active {
+        transform: translateY(0);
+    }
+    
+    .refresh-btn i {
+        transition: transform 0.3s ease;
+    }
+    
+    .refresh-btn:hover i {
+        transform: rotate(180deg);
+    }
+    
+    /* Statistics Cards Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+    }
+    
+    .stat-card.sales-card::before {
+        background: linear-gradient(90deg, #10b981, #059669);
+    }
+    
+    .stat-card.expenses-card::before {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+    
+    .stat-card.profit-card::before {
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-icon-wrapper {
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .sales-card .stat-icon {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+    
+    .expenses-card .stat-icon {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+    }
+    
+    .profit-card .stat-icon {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .stat-icon::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        transform: rotate(45deg);
+        animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    
+    .stat-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .stat-label {
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+    
+    .stat-change {
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+    }
+    
+    .stat-change.positive {
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.1);
+    }
+    
+    .stat-change.negative {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+    }
+    
+    .stat-change.positive::before {
+        content: '↑';
+        font-weight: 700;
+    }
+    
+    .stat-change.negative::before {
+        content: '↓';
+        font-weight: 700;
+    }
+    
+    /* Chart Container */
+    .chart-wrapper {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .chart-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+    }
+    
+    .chart-legend {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+    }
+    
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+    
+    .legend-color.gross-sales {
+        background: rgb(0, 0, 0);
+    }
+    
+    .legend-color.expenses {
+        background: rgb(59, 130, 246);
+    }
+    
+    .legend-color.gross-profit {
+        background: rgb(30, 64, 175);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+    }
+    
+    .chart-container canvas {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .financial-analytics-container {
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .header-controls {
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1.25rem;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+        }
+        
+        .chart-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .period-selector {
+            min-width: 120px;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8rem;
+        }
+        
+        .refresh-btn {
+            padding: 0.625rem 1rem;
+            font-size: 0.8rem;
+        }
+        
+        .refresh-btn span {
+            display: none;
+        }
+        
+        .chart-legend {
+            gap: 1rem;
+        }
+        
+        .chart-container {
+            height: 250px;
+        }
+    }
+    
+    /* ===== SIMPLE FINANCIAL DASHBOARD DESIGN ===== */
+    
+    .financial-dashboard-simple {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    /* Simple Header */
+    .simple-header {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .header-left h2 {
+        margin: 0 0 4px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #111827;
+    }
+    
+    .header-left p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+    
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .simple-select {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        font-size: 14px;
+        color: #374151;
+    }
+    
+    .simple-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+    
+    .simple-btn {
+        padding: 8px 16px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: background-color 0.2s;
+    }
+    
+    .simple-btn:hover {
+        background: #2563eb;
+    }
+    
+    /* Simple Stats Cards */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .stat-card-simple {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .stat-header-simple {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .stat-label-simple {
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+    }
+    
+    .stat-trend-simple {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+    
+    .stat-trend-simple.positive {
+        color: #059669;
+        background: #d1fae5;
+    }
+    
+    .stat-trend-simple.negative {
+        color: #dc2626;
+        background: #fee2e2;
+    }
+    
+    .stat-value-simple {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 4px;
+        line-height: 1;
+    }
+    
+    .stat-desc-simple {
+        font-size: 12px;
+        color: #9ca3af;
+    }
+    
+    /* Net Profit Card Special Styling */
+    .net-profit-card {
+        background: #3b82f6 !important;
+        border: 1px solid #2563eb !important;
+    }
+    
+    .net-profit-card .stat-label-simple {
+        color: #ffffff !important;
+    }
+    
+    .net-profit-card .stat-value-simple {
+        color: #ffffff !important;
+    }
+    
+    .net-profit-card .stat-desc-simple {
+        color: #dbeafe !important;
+    }
+    
+    /* Simple Chart Section */
+    .chart-section-simple {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 24px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .chart-header-simple {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .chart-title-simple {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+    }
+    
+    .chart-legend-simple {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    
+    .legend-item-simple {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #6b7280;
+    }
+    
+    .legend-dot-simple {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    
+    .legend-dot-simple.black {
+        background: #059669;
+    }
+    
+    .legend-dot-simple.blue {
+        background: #dc2626;
+    }
+    
+    .legend-dot-simple.dark-blue {
+        background: #3b82f6;
+    }
+    
+    .chart-wrapper-simple {
+        height: 350px;
+        position: relative;
+        width: 100%;
+    }
+    
+    .chart-wrapper-simple canvas {
+        border-radius: 4px;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .financial-dashboard-simple {
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .header-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .header-right {
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .stats-row {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        .stat-card-simple {
+            padding: 16px;
+        }
+        
+        .stat-value-simple {
+            font-size: 24px;
+        }
+        
+        .chart-section-simple {
+            padding: 16px;
+        }
+        
+        .chart-header-simple {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .chart-wrapper-simple {
+            height: 300px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .simple-select {
+            min-width: 120px;
+            font-size: 13px;
+        }
+        
+        .simple-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        
+        .chart-legend-simple {
+            gap: 12px;
+        }
+        
+        .chart-wrapper-simple {
+            height: 250px;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="admin-header">
+            <!-- Mobile Menu Toggle - Positioned Absolutely -->
+            <button type="button" class="btn btn-outline-secondary btn-professional mobile-sidebar-toggle" id="mobileSidebarToggle">
+                ☰ Menu
+            </button>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <!-- Centered Title Container -->
+                <div class="d-flex align-items-center justify-content-center w-100">
+                    <h1 class="admin-title">Zenith <span>Labs</span> - Admin</h1>
+                </div>
+            </div>
+        </div>
+        <div id="admin-alert-container" class="mb-2"></div>
+        
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Sidebar Layout -->
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-print-none">
+                <div class="sidebar-header p-3 d-md-none">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Navigation Menu</span>
+                        <button type="button" class="btn-close" id="mobileSidebarClose"></button>
+                    </div>
+                </div>
+                <nav class="nav flex-column nav-pills" id="adminTabs" role="tablist">
+                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                        <span class="nav-icon material-icons">dashboard</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <div class="dropdown">
+                        <button class="nav-link dropdown-toggle" id="inventory-dropdown" data-bs-toggle="dropdown" type="button" aria-expanded="false">
+                            <span class="nav-icon material-icons">inventory_2</span>
+                            <span>Inventory</span>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="inventory-dropdown">
+                            <li><a class="dropdown-item" id="inventory-product-tab" data-bs-toggle="tab" data-bs-target="#inventory">Product</a></li>
+                            <li><a class="dropdown-item" id="inventory-history-tab" data-bs-toggle="tab" data-bs-target="#inventory-history">Inventory History</a></li>
+                        </ul>
+                    </div>
+                    <button class="nav-link" id="suppliers-tab" data-bs-toggle="tab" data-bs-target="#suppliers" type="button" role="tab" aria-controls="suppliers" aria-selected="false">
+                        <span class="nav-icon material-icons">store</span>
+                        <span>Suppliers</span>
+                    </button>
+                    <button class="nav-link" id="sales-journal-tab" data-bs-toggle="tab" data-bs-target="#sales-journal" type="button" role="tab" aria-controls="sales-journal" aria-selected="false">
+                        <span class="nav-icon material-icons">payments</span>
+                        <span>Sales Journal</span>
+                    </button>
+                    <button class="nav-link" id="expense-journal-tab" data-bs-toggle="tab" data-bs-target="#expense-journal" type="button" role="tab" aria-controls="expense-journal" aria-selected="false">
+                        <span class="nav-icon material-icons">money_off</span>
+                        <span>Expense Journal</span>
+                    </button>
+                    <button class="nav-link" id="top-selling-tab" data-bs-toggle="tab" data-bs-target="#top-selling" type="button" role="tab" aria-controls="top-selling" aria-selected="false">
+                        <span class="nav-icon material-icons">local_fire_department</span>
+                        <span>Top selling</span>
+                    </button>
+                    <button class="nav-link" id="audit-logs-tab" data-bs-toggle="tab" data-bs-target="#audit-logs" type="button" role="tab" aria-controls="audit-logs" aria-selected="false">
+                        <span class="nav-icon material-icons">search</span>
+                        <span>Audit</span>
+                    </button>
+                    <button class="nav-link" id="void-item-tab" data-bs-toggle="tab" data-bs-target="#void-item" type="button" role="tab" aria-controls="void-item" aria-selected="false">
+                        <span class="nav-icon material-icons">delete</span>
+                        <span>Voided</span>
+                    </button>
+                    <button class="nav-link" id="backup-sales-tab" data-bs-toggle="tab" data-bs-target="#backup-sales" type="button" role="tab" aria-controls="backup-sales" aria-selected="false">
+                        <span class="nav-icon material-icons">backup</span>
+                        <span>Backup Data</span>
+                    </button>
+                    <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
+                        <span class="nav-icon material-icons">settings</span>
+                        <span>Settings</span>
+                    </button>
+                    <button class="nav-link" id="logout-btn" onclick="logout()" type="button" role="button">
+                        <span class="nav-icon material-icons">logout</span>
+                        <span>Logout</span>
+                    </button>
+                    </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+        <div class="tab-content" id="advancedSettingsPanel">
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Items</h5>
+                                <h2 class="text-primary" id="total-items">0</h2>
+                                <p class="card-text text-muted">All inventory records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h5 class="card-title">Low Stock Items</h5>
+                                <h2 class="text-warning" id="low-stock-count">0</h2>
+                                <p class="card-text text-muted">Stock ≤ 5</p>
+                                <button type="button" class="btn btn-outline-warning btn-sm" id="view-lowstock-btn">View</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card border-danger">
+                            <div class="card-body">
+                                <h5 class="card-title">Out of Stock</h5>
+                                <h2 class="text-danger" id="out-stock-count">0</h2>
+                                <p class="card-text text-muted">Needs restock</p>
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="view-outstock-btn">View</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <h5 class="card-title">Top 3 Items</h5>
+                                <div id="top-3-items-display">
+                                    <div class="small text-muted">No data</div>
+                                </div>
+                                <button type="button" class="btn btn-outline-success btn-sm" id="view-top-3-btn">View</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Performance Analytics - Simple Clean Design -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="financial-dashboard-simple">
+                            <!-- Simple Header -->
+                            <div class="simple-header">
+                                <div class="header-row">
+                                    <div class="header-left">
+                                        <h2 class="page-title">Financial Performance</h2>
+                                        <p class="page-subtitle">Track your business metrics</p>
+                                    </div>
+                                    <div class="header-right">
+                                        <select class="simple-select" id="chart-period">
+                                            <option value="7" selected>Last 7 Days</option>
+                                            <option value="30">Last 30 Days</option>
+                                            <option value="90">Last 90 Days</option>
+                                            <option value="365">Last Year</option>
+                                        </select>
+                                        <button class="simple-btn" id="refresh-chart">
+                                            <i class="fas fa-sync-alt"></i>
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Simple Stats Cards -->
+                            <div class="stats-row">
+                                <!-- Stats cards removed - Total Revenue and Gross Profit cards deleted -->
+                            </div>
+
+                            <!-- Simple Chart -->
+                            <div class="chart-section-simple">
+                                <div class="chart-header-simple">
+                                    <h3 class="chart-title-simple">Revenue Trends</h3>
+                                </div>
+                                <div class="chart-wrapper-simple">
+                                    <canvas id="financial-overview-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tab-pane fade" id="inventory" role="tabpanel" aria-labelledby="inventory-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                    <div>
+                        <h3 class="h5 mb-1">Inventory</h3>
+                        <p class="text-muted small mb-0">Manage items, prices, stock, and categories.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Search Bar -->
+                        <div class="input-group" style="width: 300px;">
+                            <span class="input-group-text bg-light border-0">
+                                <i class="fas fa-search text-secondary"></i>
+                            </span>
+                            <input type="text" class="form-control border" id="inventory-search" placeholder="Search items..." style="border-color: black; border-width: 1px;">
+                        </div>
+                        <button onclick="showItemModal()" class="btn btn-primary">Add Item</button>
+                    </div>
+                </div>
+                
+                                
+                <div class="table-responsive rounded-3 border-0">
+                    <!-- Summary Totals Above Table -->
+                    <div class="text-center mb-3" id="inventory-summary">
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-body py-2">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="small text-muted">Total Profit Potential</div>
+                                                <div class="h5 mb-0 text-success" id="total-profit-display">₱0.00</div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="small text-muted">Total Retail Value</div>
+                                                <div class="h5 mb-0 text-primary" id="total-retail-display">₱0.00</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <table class="table table-hover align-middle mb-0" id="inventory-table">
+                        <thead class="small text-uppercase text-secondary">
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Cost</th>
+                                <th scope="col">Selling Price</th>
+                                <th scope="col">Profit/Unit</th>
+                                <th scope="col">Total Selling Value</th>
+                                <th scope="col">Stock</th>
+                                <th scope="col">Category</th>
+                                <th scope="col" class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="void-item" role="tabpanel" aria-labelledby="void-item-tab">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4 gap-2">
+                    <div>
+                        <h3 class="h5 mb-1">Void Item Log</h3>
+                        <p class="text-muted small mb-0">Review items that have been voided by cashiers. Stock is auto-returned to inventory when items are voided.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Date Picker -->
+                        <div class="input-group" style="width: 200px;">
+                            <span class="input-group-text bg-light border-0">
+                                <i class="fas fa-calendar text-secondary"></i>
+                            </span>
+                            <input type="date" class="form-control form-control-sm border" id="void-date-picker" placeholder="Local time" style="border-color: black; border-width: 1px;">
+                        </div>
+                        <!-- Search Bar -->
+                        <div class="col-12 col-md-4 col-lg-3">
+                            <input type="text" id="void-item-search" class="form-control form-control-sm" placeholder="Search void items...">
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive rounded-3 border border-secondary border-opacity-25">
+                    <table class="table table-hover align-middle mb-0" id="void-item-table">
+                        <thead class="small text-uppercase text-secondary">
+                            <tr>
+                                <th scope="col">Date / Time</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Qty</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="inventory-history" role="tabpanel" aria-labelledby="inventory-history-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="h5 mb-0">Inventory History</h3>
+                    <div>
+                        <button onclick="loadInventoryHistory()" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Date Filter -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small">Select Date</label>
+                        <input type="date" class="form-control form-control-sm" id="inventory-history-date">
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped" id="inventory-history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Item</th>
+                                <th>Previous Stock</th>
+                                <th>New Stock</th>
+                                <th>User</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="suppliers" role="tabpanel" aria-labelledby="suppliers-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                    <div>
+                        <h3 class="h5 mb-1">Suppliers</h3>
+                        <p class="text-muted small mb-0">Manage supplier information and contact details.</p>
+                    </div>
+                    <div>
+                        <button onclick="showSupplierModal()" class="btn btn-primary">Add Supplier</button>
+                    </div>
+                </div>
+                <div class="table-responsive rounded-3 border border-secondary border-opacity-25">
+                    <table class="table table-hover align-middle mb-0" id="suppliers-table">
+                        <thead class="small text-uppercase text-secondary">
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Contact</th>
+                                <th scope="col">Phone</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Address</th>
+                                <th scope="col" class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="sales-journal" role="tabpanel" aria-labelledby="sales-journal-tab">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h3 class="h5 mb-0">Sales Journal</h3>
+                    <div class="text-end">
+                        <div class="small text-muted">Monthly Gross</div>
+                        <div class="fw-semibold">₱ <span id="monthly-gross">0</span></div>
+                    </div>
+                </div>
+                <select id="sales-month">
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+                <div class="table-responsive mt-2">
+                    <table class="table" id="sales-journal-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>View</th>
+                                <th>Gross Sales</th>
+                                <th>Expense</th>
+                                <th>Gross Profit</th>
+                                <th>Net Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="expense-journal" role="tabpanel" aria-labelledby="expense-journal-tab">
+                <div class="container" style="width: 75%; max-width: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="h5 mb-0">Expense Journal</h3>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="expense-date-filter" class="small text-muted mb-0">Date:</label>
+                                <input type="date" class="form-control form-control-sm" id="expense-date-filter" style="width: 140px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mb-3">
+                        <div class="d-inline-flex gap-2 flex-wrap justify-content-center">
+                            <!-- Paid Amount Card -->
+                            <div class="d-inline-block px-4 py-2 bg-success rounded-3">
+                                <div class="small text-white fw-semibold mb-1">PAID AMOUNT</div>
+                                <div class="h4 text-white fw-bold mb-0">₱ <span id="paid-expenses">0</span></div>
+                            </div>
+                            <!-- Remaining Amount Card -->
+                            <div class="d-inline-block px-4 py-2 bg-warning rounded-3">
+                                <div class="small text-white fw-semibold mb-1">REMAINING</div>
+                                <div class="h4 text-white fw-bold mb-0">₱ <span id="remaining-expenses">0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table" id="expense-journal-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-center">View Payment</th>
+                                    <th class="text-center">Status</th>
+                                    <th>Description</th>
+                                    <th>Cash</th>
+                                    <th class="text-center">Paid Amount</th>
+                                    <th class="text-center">Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="top-selling" role="tabpanel" aria-labelledby="top-selling-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                    <div>
+                        <h3 class="h5 mb-1">Top Selling Items</h3>
+                        <p class="text-muted small mb-0">View your best-selling products and performance metrics.</p>
+                    </div>
+                    <div>
+                        <button onclick="loadTopSellingItems()" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
+                        <button onclick="exportTopSellingItems()" class="btn btn-success btn-sm ms-2">
+                            <i class="fas fa-download me-1"></i> Export
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Date Range Filter -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small">From Date</label>
+                        <input type="date" class="form-control form-control-sm" id="top-selling-from-date">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">To Date</label>
+                        <input type="date" class="form-control form-control-sm" id="top-selling-to-date">
+                    </div>
+                </div>
+
+                <!-- Summary Cards Removed -->
+
+                <!-- Top Selling Items Table -->
+                <div class="card dashboard-card-top-selling">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">Best Selling Products</h5>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary active" onclick="sortTopItems('quantity')" id="sort-by-quantity">By Quantity</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="sortTopItems('revenue')" id="sort-by-revenue">By Revenue</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="top-selling-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Item Name</th>
+                                        <th>Category</th>
+                                        <th>Price</th>
+                                        <th>Quantity Sold</th>
+                                        <th>Total Revenue</th>
+                                        <th>% of Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">
+                                            <i class="fas fa-chart-line fa-2x mb-2"></i>
+                                            <div>Loading top selling items...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="audit-logs" role="tabpanel" aria-labelledby="audit-logs-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                    <div>
+                        <h3 class="h5 mb-1">Audit Logs</h3>
+                        <p class="text-muted small mb-0">View system activity and audit trail.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Date Picker -->
+                        <div class="input-group" style="width: 200px;">
+                            <span class="input-group-text bg-light border-0">
+                                <i class="fas fa-calendar text-secondary"></i>
+                            </span>
+                            <input type="date" class="form-control form-control-sm border" id="audit-date-picker" placeholder="Local time" style="border-color: black; border-width: 1px;">
+                        </div>
+                        <!-- Search Bar -->
+                        <div class="input-group" style="width: 300px;">
+                            <span class="input-group-text bg-light border-0">
+                                <i class="fas fa-search text-secondary"></i>
+                            </span>
+                            <input type="text" class="form-control border" id="audit-search" placeholder="Search logs..." style="border-color: black; border-width: 1px;">
+                        </div>
+                        <!-- Clean Logs Button -->
+                        <button type="button" class="btn btn-outline-danger btn-sm" id="clean-audit-logs-btn" title="Remove SECURITY_INITIALIZED logs">
+                            <i class="fas fa-trash-alt"></i> Clean Logs
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table" id="audit-logs-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="backup-sales" role="tabpanel" aria-labelledby="backup-sales-tab">
+                <h3>Backup & Restore</h3>
+                
+                <div class="text-center mb-4">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="p-4 border rounded bg-light">
+                                <h4 class="mb-3"><span class="material-icons">cloud</span> Cloud Backup</h4>
+                                <p class="text-muted mb-4">Save your data to connected cloud storage</p>
+                                <button type="button" class="btn btn-primary btn-lg" id="backup-to-cloud-btn" disabled>
+                                    Cloud Backup
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-4 border rounded bg-light">
+                                <h4 class="mb-3"><span class="material-icons">download</span> Local Backup</h4>
+                                <p class="text-muted mb-4">Download backup file to your device</p>
+                                <button type="button" class="btn btn-info btn-lg" id="create-backup-btn">
+                                    Local Backup
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-4 border rounded bg-light">
+                                <h4 class="mb-3"><span class="material-icons">restore</span> Restore Data</h4>
+                                <p class="text-muted mb-4">Load your data from a backup file</p>
+                                <div class="mb-3">
+                                    <input type="file" class="form-control" id="restore-file-input" accept=".json" placeholder="Choose backup file">
+                                </div>
+                                <button type="button" class="btn btn-success btn-lg" id="restore-backup-btn">
+                                    Restore Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info text-center" id="backup-info">
+                    <strong><span class="material-icons">lightbulb</span> Tip:</strong> Create regular backups to protect your business data from device issues or browser problems.
+                </div>
+
+                <h4><span class="material-icons">cloud</span> Cloud Storage Connection</h4>
+                <div class="text-center mb-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="p-4 border rounded bg-light h-100">
+                                <h4 class="mb-3"><span class="material-icons">link</span> Connect Cloud Storage</h4>
+                                <p class="text-muted mb-4">Connect your Google Drive or other cloud storage for automatic backups</p>
+                                <select class="form-select mb-3" id="cloud-provider-select">
+                                    <option value="">Choose Cloud Provider</option>
+                                    <option value="googledrive"><span class="material-icons">folder</span> Google Drive</option>
+                                    <option value="dropbox"><span class="material-icons">inventory_2</span> Dropbox</option>
+                                    <option value="onedrive"><span class="material-icons">cloud</span> OneDrive</option>
+                                    <option value="googcloud"><span class="material-icons">public</span> Google Cloud</option>
+                                </select>
+                                <button type="button" class="btn btn-info btn-lg" id="connect-cloud-btn">
+                                    Connect Cloud
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="p-4 border rounded bg-light h-100">
+                                <h4 class="mb-3"><span class="material-icons">cloud</span> Cloud Status</h4>
+                                <p class="text-muted mb-4">View your cloud storage connection status</p>
+                                <div id="cloud-status" class="mb-3">
+                                    <span class="badge bg-secondary">Not Connected</span>
+                                </div>
+                                <div id="auto-backup-protection" class="mb-3" style="display: none;">
+                                    <div class="alert alert-success py-2">
+                                        <strong><span class="material-icons">shield</span> Auto-Backup Protection Active</strong>
+                                        <div class="small mt-1">
+                                            Your data is automatically protected against loss
+                                        </div>
+                                    </div>
+                                </div>
+                                                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                <h3 class="text-primary"><span class="material-icons">lock</span> Security Settings</h3>
+                <div class="row">
+                    <!-- Access Control -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><span class="material-icons">security</span> Access Control</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <h6 class="fw-bold text-primary">Feature Restrictions</h6>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allow-cashier-void" checked>
+                                        <label class="form-check-label text-dark" for="allow-cashier-void">
+                                            Allow Cashier to Void Items
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allow-cashier-expenses" checked>
+                                        <label class="form-check-label text-dark" for="allow-cashier-expenses">
+                                            Allow Cashier to Add Expenses
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allow-cashier-discount" checked>
+                                        <label class="form-check-label text-dark" for="allow-cashier-discount">
+                                            Allow Cashier to Apply Discounts
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allow-cashier-reports">
+                                        <label class="form-check-label text-dark" for="allow-cashier-reports">
+                                            Allow Cashier to View Reports
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6 class="fw-bold text-primary">IP Restrictions</h6>
+                                    <div class="mb-2">
+                                        <label for="allowed-ips" class="form-label small fw-semibold text-dark">Allowed IP Addresses (one per line)</label>
+                                        <textarea class="form-control form-control-sm" id="allowed-ips" rows="3" placeholder="192.168.1.100&#10;10.0.0.50&#10;127.0.0.1"></textarea>
+                                        <small class="text-muted">Leave empty to allow all IPs</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Security -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">🔒 Data Security</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <h6 class="fw-bold text-primary">Data Protection</h6>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="encrypt-local-data" checked>
+                                        <label class="form-check-label text-dark" for="encrypt-local-data">
+                                            Encrypt Local Database
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="auto-backup" checked>
+                                        <label class="form-check-label text-dark" for="auto-backup">
+                                            Enable Automatic Backups
+                                        </label>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label for="backup-frequency" class="form-label small fw-semibold text-dark">Backup Frequency</label>
+                                        <select class="form-select form-select-sm" id="backup-frequency">
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly" selected>Weekly</option>
+                                            <option value="monthly">Monthly</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6 class="fw-bold text-primary">Audit Trail</h6>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="detailed-audit" checked>
+                                        <label class="form-check-label text-dark" for="detailed-audit">
+                                            Enable Detailed Audit Logging
+                                        </label>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label for="audit-retention" class="form-label small fw-semibold text-dark">Audit Log Retention (days)</label>
+                                        <select class="form-select form-select-sm" id="audit-retention">
+                                            <option value="30">30 days</option>
+                                            <option value="90" selected>90 days</option>
+                                            <option value="180">180 days</option>
+                                            <option value="365">1 year</option>
+                                            <option value="0">Forever</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Actions -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><span class="material-icons">flash_on</span> Security Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-primary" id="save-security-settings-btn">
+                                                <span class="material-icons">save</span> Save all security configuration changes
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-primary" id="test-security-btn">
+                                                <span class="material-icons">science</span> Run security tests and checks
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-primary" id="reset-security-btn">
+                                                <span class="material-icons">refresh</span> Reset all security settings to defaults
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-primary" id="lock-all-sessions-btn">
+                                                <span class="material-icons">lock</span> Force all users to logout immediately
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-primary" id="security-report-btn">
+                                                <span class="material-icons">assessment</span> Export security settings and audit data
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Status -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><span class="material-icons">assessment</span> Security Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="security-status-grid">
+                                    <div class="col-md-3 mb-3">
+                                        <div class="text-center">
+                                            <div class="security-status-item">
+                                                <div class="security-status-icon text-primary">
+                                                    <i class="fas fa-shield-alt fa-2x"></i>
+                                                </div>
+                                                <h6 class="mt-2 text-primary">Password Strength</h6>
+                                                <div class="security-status-value text-dark fw-bold" id="password-strength-status">Strong</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="text-center">
+                                            <div class="security-status-item">
+                                                <div class="security-status-icon text-primary">
+                                                    <i class="fas fa-lock fa-2x"></i>
+                                                </div>
+                                                <h6 class="mt-2 text-primary">Data Encryption</h6>
+                                                <div class="security-status-value text-dark fw-bold" id="encryption-status">Enabled</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="text-center">
+                                            <div class="security-status-item">
+                                                <div class="security-status-icon text-primary">
+                                                    <i class="fas fa-user-shield fa-2x"></i>
+                                                </div>
+                                                <h6 class="mt-2 text-primary">Access Control</h6>
+                                                <div class="security-status-value text-dark fw-bold" id="access-control-status">Moderate</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                <h3 class="text-primary">Advanced Settings Features</h3>
+                <div class="row justify-content-center">
+                    <div class="col-12 col-lg-8">
+                        <form id="settings-form">
+                            <div class="admin-settings-grid">
+                            <!-- System Settings -->
+                            <div class="admin-settings-section">
+                                <h5 class="h6 mb-3 text-primary">System Settings</h5>
+                                <div class="admin-form-grid admin-form-grid-2 mb-3">
+                                    <div>
+                                        <label for="system-timezone" class="form-label small fw-semibold text-dark">System Timezone</label>
+                                        <select class="form-select form-select-sm" id="system-timezone">
+                                            <option value="UTC">UTC</option>
+                                            <option value="Asia/Manila">Asia/Manila</option>
+                                            <option value="America/New_York">America/New_York</option>
+                                            <option value="Europe/London">Europe/London</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="system-currency" class="form-label small fw-semibold text-dark">Currency Symbol</label>
+                                        <input type="text" class="form-control form-control-sm" id="system-currency" value="₱" maxlength="3">
+                                    </div>
+                                </div>
+                                <div class="admin-form-grid admin-form-grid-2 mb-3">
+                                    <div>
+                                        <label for="decimal-places" class="form-label small fw-semibold text-dark">Decimal Places</label>
+                                        <select class="form-select form-select-sm" id="decimal-places">
+                                            <option value="0">0</option>
+                                            <option value="2" selected>2</option>
+                                            <option value="3">3</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="date-format" class="form-label small fw-semibold text-dark">Date Format</label>
+                                        <select class="form-select form-select-sm" id="date-format">
+                                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Display Settings -->
+                            <div class="admin-settings-section">
+                                <h5 class="h6 mb-3 text-primary">Display Settings</h5>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="show-inventory-images" checked>
+                                        <label class="form-check-label text-dark" for="show-inventory-images">
+                                            Show Product Images in Inventory
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="enable-animations" checked>
+                                        <label class="form-check-label text-dark" for="enable-animations">
+                                            Enable UI Animations
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="show-notifications" checked>
+                                        <label class="form-check-label text-dark" for="show-notifications">
+                                            Show System Notifications
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="admin-form-grid admin-form-grid-2 mb-3">
+                                    <div>
+                                        <label for="items-per-page" class="form-label small fw-semibold text-dark">Items Per Page</label>
+                                        <select class="form-select form-select-sm" id="items-per-page">
+                                            <option value="10">10</option>
+                                            <option value="25" selected>25</option>
+                                            <option value="50">50</option>
+                                            <option value="100">100</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="theme-mode" class="form-label small fw-semibold text-dark">Theme Mode</label>
+                                        <select class="form-select form-select-sm" id="theme-mode">
+                                            <option value="light" selected>Light</option>
+                                            <option value="dark">Dark</option>
+                                            <option value="auto">Auto</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Password Change Section -->
+                            <div class="admin-settings-section">
+                                <h5 class="h6 mb-3 text-primary">Password Change</h5>
+                                <div class="mb-3">
+                                    <label for="current-password" class="form-label small fw-semibold text-dark">Current Password</label>
+                                    <input type="password" class="form-control form-control-sm" id="current-password" placeholder="Enter current password">
+                                </div>
+                                <div class="admin-form-grid admin-form-grid-2 mb-3">
+                                    <div>
+                                        <label for="new-password" class="form-label small fw-semibold text-dark">New Password</label>
+                                        <input type="password" class="form-control form-control-sm" id="new-password" placeholder="Enter new password">
+                                    </div>
+                                    <div>
+                                        <label for="confirm-password" class="form-label small fw-semibold text-dark">Confirm New Password</label>
+                                        <input type="password" class="form-control form-control-sm" id="confirm-password" placeholder="Confirm new password">
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-warning btn-sm" id="change-admin-password-btn">
+                                        <i class="fas fa-key me-1"></i> Change Admin Password
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm" id="change-cashier-password-btn">
+                                        <i class="fas fa-user-lock me-1"></i> Change Cashier Password
+                                    </button>
+                                </div>
+                                <div id="password-change-status" class="small mt-2" style="display: none;"></div>
+                            </div>
+
+                            <!-- Save Button -->
+                            <div class="admin-settings-section">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="small text-muted">
+                                        <span id="settings-last-saved">Last saved: Never</span>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="reset-settings-btn">Reset to Defaults</button>
+                                        <button type="button" class="btn btn-primary btn-sm" id="save-settings-btn">Save Settings</button>
+                                    </div>
+                                </div>
+                                <div id="settings-status" class="small mt-2" style="display: none;"></div>
+                            </div>
+                        </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="admin-settings-grid">
+                    <div class="admin-settings-section">
+                        <h5 class="h6 mb-2 text-danger">Danger Zone</h5>
+                        <p class="small text-muted">This will permanently delete all POS data (inventory, sales, journals, suppliers, audit logs). This action cannot be undone.</p>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="clear-data-btn">Clear All Data</button>
+                        </div>
+                        <div id="clear-data-status" class="small mt-2" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Item -->
+    <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemModalLabel">Add Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="item-form">
+                        <div class="mb-3">
+                            <label for="item-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="item-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="item-cost" class="form-label">Cost</label>
+                            <input type="number" class="form-control" id="item-cost" step="0.01" placeholder="0.00">
+                            <small class="text-muted">Enter the cost price of the item (for profit calculations)</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="item-price" class="form-label">Selling Price</label>
+                            <input type="number" class="form-control" id="item-price" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="item-stock" class="form-label">Stock</label>
+                            <input type="number" class="form-control" id="item-stock" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="item-category" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="item-category" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="item-image" class="form-label">Image (Optional)</label>
+                            <input type="file" class="form-control" id="item-image" accept="image/*">
+                            <div class="mt-2 text-center">
+                                <img id="image-preview" style="max-width: 220px; max-height: 220px; display: none; margin: 0 auto; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Supplier -->
+    <div class="modal fade" id="supplierModal" tabindex="-1" aria-labelledby="supplierModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="supplierModalLabel">Add Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="supplier-form">
+                        <div class="mb-3">
+                            <label for="supplier-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="supplier-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplier-contact" class="form-label">Contact Person</label>
+                            <input type="text" class="form-control" id="supplier-contact">
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplier-phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="supplier-phone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplier-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="supplier-email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplier-address" class="form-label">Address</label>
+                            <textarea class="form-control" id="supplier-address" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplier-notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="supplier-notes" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Supplier</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="salesDetailsModal" tabindex="-1" aria-labelledby="salesDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="salesDetailsModalLabel">Sales Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="sales-details-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <strong>Total for this date: ₱<span id="sales-details-total">0</span></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="security-system.js"></script>
+    <script src="anti-cloning.js"></script>
+    <script src="code-obfuscator.js"></script>
+    <script src="license-manager.js"></script>
+    <script src="secure-auth.js"></script>
+    <script src="access-control.js"></script>
+    <script src="db.js"></script>
+    <script src="hardware.js"></script>
+    <script>
+        // Simple Inventory History
+        function loadInventoryHistory() {
+            const tbody = document.querySelector('#inventory-history-table tbody');
+            tbody.innerHTML = '';
+            
+            // Simple inventory data
+            const inventoryData = [
+                { date: '2025-11-28', item: 'Coca Cola', previousStock: 50, newStock: 48, user: 'Cashier' },
+                { date: '2025-11-28', item: 'Pepsi', previousStock: 30, newStock: 54, user: 'Admin' },
+                { date: '2025-11-28', item: 'Sprite', previousStock: 25, newStock: 24, user: 'Cashier' },
+                { date: '2025-11-28', item: 'Mountain Dew', previousStock: 40, newStock: 35, user: 'Admin' },
+                { date: '2025-11-28', item: 'Fanta', previousStock: 20, newStock: 21, user: 'Cashier' }
+            ];
+            
+            inventoryData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.date}</td>
+                    <td>${item.item}</td>
+                    <td>${item.previousStock}</td>
+                    <td>${item.newStock}</td>
+                    <td>${item.user}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Load inventory history when tab is shown
+        document.addEventListener('DOMContentLoaded', function() {
+            const inventoryHistoryTab = document.getElementById('inventory-history-tab');
+            if (inventoryHistoryTab) {
+                inventoryHistoryTab.addEventListener('shown.bs.tab', function() {
+                    loadInventoryHistory();
+                });
+            }
+        });
+    </script>
+    <script src="admin.js"></script>
+    <script src="debug-errors.js"></script>
+    <script src="cloud-storage.js"></script>
+    <script src="premium-functions.js"></script>
+    <script src="admin-premium-functions.js"></script>
+    <script src="admin-premium-handlers.js"></script>
+    <script src="admin-settings.js"></script>
+</body>
+</html>
+
+<!-- Expense Details Modal -->
+<div class="modal fade" id="expenseDetailsModal" tabindex="-1" aria-labelledby="expenseDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow-sm">
+            <div class="modal-header border-0 bg-light py-3">
+                <h5 class="modal-title fw-semibold text-dark" id="expenseDetailsModalLabel">Expense Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <!-- Expense Date -->
+                <div class="border-start border-3 border-primary ps-3 mb-4">
+                    <div class="text-muted small mb-1">Expense Date</div>
+                    <div id="expense-detail-date" class="fw-medium text-dark"></div>
+                </div>
+                
+                <!-- Payment Status -->
+                <div class="border-top pt-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="mb-0 fw-medium">Payment Status</h6>
+                        <div id="payment-status-indicator" class=""></div>
+                    </div>
+                    <div id="payment-details-content">
+                        <div class="text-center py-3 text-muted">
+                            <i class="fas fa-info-circle fa-2x mb-2 d-block opacity-50"></i>
+                            <div class="small">No payment records found</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden payment sections (shown when needed) -->
+                <div id="payment-progress-section" class="mt-4" style="display: none;">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <div class="text-muted small">Paid</div>
+                                    <div class="h5 text-success fw-bold mb-0" id="paid-amount">₱0</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-muted small">Progress</div>
+                                    <div class="h5 text-primary fw-bold mb-0" id="payment-progress-text">0%</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted small">Remaining</div>
+                                    <div class="h5 text-warning fw-bold mb-0" id="remaining-amount">₱0</div>
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div id="payment-progress-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="payment-input-section" class="mt-3" style="display: none;">
+                    <div class="card border-primary">
+                        <div class="card-body p-3">
+                            <div class="row align-items-center mb-3">
+                                <div class="col">
+                                    <label for="payment-amount" class="form-label small fw-medium mb-1">Payment Amount</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-0">₱</span>
+                                        <input type="number" class="form-control border-0" id="payment-amount" placeholder="0.00" step="0.01" min="0">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Real-time calculation display -->
+                            <div class="alert alert-info mb-0 py-2" id="real-time-calculation" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="small">
+                                        <strong>Real-time Calculation:</strong>
+                                    </div>
+                                    <div class="small text-end">
+                                        <div>Current Paid: <span id="calc-current-paid" class="fw-bold">₱0</span></div>
+                                        <div>+ This Payment: <span id="calc-this-payment" class="fw-bold text-primary">₱0</span></div>
+                                        <div>= Total Paid: <span id="calc-total-paid" class="fw-bold text-success">₱0</span></div>
+                                        <div>Remaining: <span id="calc-remaining" class="fw-bold text-warning">₱0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light py-3">
+                <button type="button" class="btn btn-warning d-none" id="process-payment-btn">
+                    <i class="fas fa-calculator me-1"></i> Process
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

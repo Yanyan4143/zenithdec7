@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Callback - ZenithLabs POS</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .callback-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success-icon {
+            font-size: 3rem;
+            color: #28a745;
+            margin-bottom: 1rem;
+        }
+        .error-icon {
+            font-size: 3rem;
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="callback-container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <h3>Connecting to Cloud Storage...</h3>
+            <p>Please wait while we complete the authentication.</p>
+        </div>
+        
+        <div id="success" style="display: none;">
+            <div class="success-icon">✅</div>
+            <h3>Connection Successful!</h3>
+            <p>Your cloud storage has been connected successfully.</p>
+            <p>This window will close automatically.</p>
+        </div>
+        
+        <div id="error" style="display: none;">
+            <div class="error-icon">❌</div>
+            <h3>Connection Failed</h3>
+            <p id="error-message">There was an error connecting to your cloud storage.</p>
+            <button onclick="window.close()" class="btn btn-primary mt-3">Close Window</button>
+        </div>
+    </div>
+
+    <script>
+        // Handle OAuth callback
+        function handleCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            
+            // Check for access token in URL parameters or hash
+            const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+            const error = urlParams.get('error') || hashParams.get('error');
+            const state = urlParams.get('state') || hashParams.get('state');
+            
+            if (error) {
+                showError(error);
+                return;
+            }
+            
+            if (accessToken) {
+                // Send token to parent window
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({
+                        type: 'oauth_success',
+                        accessToken: accessToken,
+                        state: state
+                    }, window.location.origin);
+                }
+                
+                showSuccess();
+                
+                // Close window after delay
+                setTimeout(() => {
+                    window.close();
+                }, 3000);
+            } else {
+                showError('No access token received');
+            }
+        }
+        
+        function showSuccess() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('success').style.display = 'block';
+        }
+        
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+        
+        // Handle messages from parent window
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'oauth_init') {
+                // Parent window is ready for callback
+                console.log('OAuth callback ready');
+            }
+        });
+        
+        // Process callback when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Small delay to ensure page is ready
+            setTimeout(handleCallback, 500);
+        });
+        
+        // Fallback: close window if no response after 10 seconds
+        setTimeout(() => {
+            if (document.getElementById('loading').style.display !== 'none') {
+                showError('Authentication timeout');
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

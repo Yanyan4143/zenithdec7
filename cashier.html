@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashier - ZenithLabs POS</title>
+        <link rel="icon" href="ouroboros.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Security Headers (Note: Some headers like frame-ancestors and X-Frame-Options only work via HTTP headers) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://fonts.googleapis.com https://supabase.co https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://supabase.co ws://localhost:4000 http://localhost:4000 https://cdn.jsdelivr.net https://accounts.google.com;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=()">
+<style>
+    .hardware-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        min-height: 200px;
+    }
+    
+    .hardware-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .hardware-card.connected {
+        border-color: #28a745 !important;
+        background-color: #f8fff9 !important;
+    }
+    
+    .hardware-card.disconnected {
+        border-color: #dc3545 !important;
+        background-color: #fff8f8 !important;
+    }
+    
+    .badge.bg-success {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    .hardware-status-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .hardware-status-table td {
+        vertical-align: middle;
+        font-size: 0.85rem;
+    }
+    
+    #barcode-input {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+    }
+    
+    .material-icons {
+        font-family: 'Material Icons';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 1.2rem;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-feature-settings: 'liga';
+        font-feature-settings: 'liga';
+        -webkit-font-smoothing: antialiased;
+        vertical-align: middle;
+    }
+    
+    .material-icons.me-1 {
+        margin-right: 0.25rem;
+    }
+    
+    .material-icons.me-2 {
+        margin-right: 0.5rem;
+    }
+    
+    /* Center text in cashier sidebar navigation */
+    .nav-pills .nav-link {
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+        flex-direction: row;
+        padding: 0.75rem 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .nav-pills .nav-link .material-icons {
+        margin-right: 0.5rem;
+        margin-bottom: 0;
+        font-size: 1.2rem;
+    }
+    
+    .nav-pills .nav-link .small {
+        text-align: center;
+        display: block;
+        width: auto;
+    }
+    
+    /* Override text-start class */
+    .nav-pills .nav-link.text-start {
+        text-align: center !important;
+    }
+    
+    #barcode-input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    }
+    
+    /* Custom Icon Styles - Pure CSS Shapes */
+    .custom-icon {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-right: 0 !important;
+        position: relative;
+    }
+    
+    /* Home Icon - House Shape */
+    .home-icon {
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 12px solid #333;
+        position: relative;
+        top: -2px;
+    }
+    
+    .home-icon::after {
+        content: '';
+        position: absolute;
+        width: 6px;
+        height: 4px;
+        background: #fff;
+        bottom: -12px;
+        left: -3px;
+    }
+    
+    /* Cart Icon - Shopping Bag */
+    .cart-icon {
+        width: 14px;
+        height: 12px;
+        border: 2px solid #333;
+        border-radius: 2px;
+        position: relative;
+        top: 2px;
+    }
+    
+    .cart-icon::before {
+        content: '';
+        position: absolute;
+        width: 8px;
+        height: 4px;
+        border: 2px solid #333;
+        border-bottom: none;
+        border-radius: 4px 4px 0 0;
+        top: -5px;
+        left: 1px;
+    }
+    
+    /* History Icon - Clock */
+    .history-icon {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #333;
+        border-radius: 50%;
+        position: relative;
+    }
+    
+    .history-icon::before {
+        content: '';
+        position: absolute;
+        width: 1px;
+        height: 4px;
+        background: #333;
+        top: 3px;
+        left: 6px;
+    }
+    
+    .history-icon::after {
+        content: '';
+        position: absolute;
+        width: 3px;
+        height: 1px;
+        background: #333;
+        top: 6px;
+        left: 6px;
+    }
+    
+    /* Add Icon - Plus Circle */
+    .add-icon {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #333;
+        border-radius: 50%;
+        position: relative;
+    }
+    
+    .add-icon::before {
+        content: '';
+        position: absolute;
+        width: 6px;
+        height: 2px;
+        background: #333;
+        top: 6px;
+        left: 4px;
+    }
+    
+    .add-icon::after {
+        content: '';
+        position: absolute;
+        width: 2px;
+        height: 6px;
+        background: #333;
+        top: 4px;
+        left: 6px;
+    }
+    
+    /* List Icon - Lines */
+    .list-icon {
+        width: 14px;
+        height: 12px;
+        position: relative;
+    }
+    
+    .list-icon::before {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 2px;
+        background: #333;
+        top: 0;
+    }
+    
+    .list-icon::after {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 2px;
+        background: #333;
+        top: 5px;
+    }
+    
+    .list-icon span {
+        position: absolute;
+        width: 14px;
+        height: 2px;
+        background: #333;
+        top: 10px;
+        display: block;
+    }
+    
+    /* Override nav link icon spacing */
+    .nav-pills .nav-link .custom-icon {
+        margin-right: 0 !important;
+    }
+</style>
+</head>
+<body>
+    <div class="pos-shell min-vh-100">
+
+        <div class="container-fluid py-3 py-md-4">
+            <div class="row g-3 g-md-4">
+              
+
+                <div class="col-12 col-md-3 col-lg-2 d-none d-md-block">
+                    <div class="card border-0 shadow-sm pos-sidebar-card">
+                        <div class="card-body p-2 p-md-3 d-flex flex-column h-100">
+                            <ul class="nav nav-pills flex-column flex-md-column gap-2" id="cashierTabsDesktop" role="tablist">
+                                  <div class="col-12 mb-2">
+                                  
+                                  </div>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active w-100 text-start d-flex align-items-center" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">
+                                        <span class="small fw-semibold">Menu</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" id="cart-tab" data-bs-toggle="tab" data-bs-target="#cart" type="button" role="tab" aria-controls="cart" aria-selected="false">
+                                        <span class="small fw-semibold">Billing</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" id="sales-history-tab" data-bs-toggle="tab" data-bs-target="#sales-history" type="button" role="tab" aria-controls="sales-history" aria-selected="false">
+                                        <span class="small fw-semibold">Sales History</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" id="add-expense-tab" data-bs-toggle="tab" data-bs-target="#add-expense" type="button" role="tab" aria-controls="add-expense" aria-selected="false">
+                                        <span class="small fw-semibold">Add Expense</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" id="expense-list-tab" data-bs-toggle="tab" data-bs-target="#expense-list" type="button" role="tab" aria-controls="expense-list" aria-selected="false">
+                                        <span class="small fw-semibold">Expense List</span>
+                                    </button>
+                                </li>
+                            </ul>
+                          
+                        </div>
+                       
+                    </div>
+                    <div class="cashier-sidebar-actions mt-3">
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" id="analytics-btn" type="button">
+                            <span class="material-icons me-1">analytics</span>
+                            Analytics
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" id="customer-loyalty-btn" type="button">
+                            <span class="material-icons me-1">people</span>
+                            Loyalty
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" id="hardware-connect-btn" type="button">
+                            <span class="material-icons me-1">build</span>
+                            Hardware
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" id="receipt-settings-btn" type="button">
+                            <span class="material-icons me-1">receipt</span>
+                            Receipt Settings
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" id="cashier-password-change-btn" type="button">
+                            <span class="material-icons me-1">password</span>
+                            Change Password
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm w-100 mt-2" id="logout-tab" onclick="logout()" type="button">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-9 col-lg-10">
+                    <div class="card border-0 shadow-sm pos-main-card">
+                        <div class="card-body p-2 p-md-3 p-lg-4">
+                            <div class="d-flex d-md-none justify-content-between align-items-center mb-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="cashierMenuToggle">
+                                    <span class="me-1">☰</span><span class="small fw-semibold">Menu</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm cashier-mobile-cart-btn" id="mobileCartButton">
+                                    <span id="mobileCartIcon" class="cashier-cart-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M7 4h-2l-1 2m0 0 2.2 9h11.6l2.2-7H6.2M6 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>
+                                    <span class="cashier-cart-count-badge" id="mobileCartCount">0</span>
+                                </button>
+                            </div>
+                            <ul class="nav nav-pills d-md-none mb-3" id="cashierTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active w-100 text-start" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-selected="true">
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" data-bs-toggle="tab" data-bs-target="#cart" type="button" role="tab" aria-selected="false">
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" data-bs-toggle="tab" data-bs-target="#sales-history" type="button" role="tab" aria-selected="false">
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" data-bs-toggle="tab" data-bs-target="#add-expense" type="button" role="tab" aria-selected="false">
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start" data-bs-toggle="tab" data-bs-target="#expense-list" type="button" role="tab" aria-selected="false">
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link w-100 text-start text-danger" type="button" onclick="logout()">
+                                    </button>
+                                </li>
+                            </ul>
+                            <div id="cashier-alert-container" class="mb-2"></div>
+                            <div class="tab-content" id="cashierTabContent">
+                                <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                                        <div>
+                                            <h3>Welcome, Cashier</h3>                                           
+                                        </div>
+                                        <!-- Desktop Cart Button - Top Right in Menu Tab -->
+                                        <div class="d-none d-md-block">
+                                            <button type="button" class="btn btn-outline-primary cashier-desktop-cart-btn-inline" id="desktopCartButton">
+                                                <span id="desktopCartIcon" class="cashier-cart-icon">
+                                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M7 4h-2l-1 2m0 0 2.2 9h11.6l2.2-7H6.2M6 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                </span>
+                                                <span class="cashier-cart-count-badge" id="desktopCartCount">0</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="inventory-shell rounded-3 p-2 p-md-3">
+                                        <div class="small text-secondary mb-2 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                                            <div>
+                                                <span>Items</span><br>
+                                                <span class="text-muted">Optimized for touch</span>
+                                            </div>
+                                            <div class="d-flex gap-2 flex-column flex-md-row">
+                                                <input type="text" class="form-control form-control-sm" id="barcode-input" placeholder="📷 Scan barcode..." style="min-width: 150px;">
+                                                <input type="text" class="form-control form-control-sm" id="inventory-search" placeholder="Search items...">
+                                                <select class="form-select form-select-sm" id="inventory-category-filter">
+                                                    <option value="all">All Categories</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                                                                <div class="table-responsive inventory-scroll">
+                                            <table class="table align-middle mb-0 inventory-table" id="inventory-table">
+                                                <thead class="small text-uppercase text-secondary inventory-header sticky-top">
+                                                    <tr>
+                                                        <th scope="col" class="border-0">Item</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade" id="cart" role="tabpanel" aria-labelledby="cart-tab">
+                                    <div style="width: 65%; margin: 0 auto;">
+                                        <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-start align-items-md-center mb-3 mb-md-4">
+                                            <div class="text-start text-md-start">
+                                                <h3 class="h5 mb-1 text-dark">Cart</h3>
+                                                <p class="text-secondary small mb-0">Review items and process payment.</p>
+                                            </div>
+                                            <div class="text-end text-md-end">
+                                                <p class="mb-1 text-secondary small text-end">Cart total</p>
+                                                <span class="h4 text-success mb-0 fw-semibold d-block text-end">₱ <span id="cart-total">0</span></span>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive rounded-3 border border-secondary border-opacity-25 overflow-hidden mb-3">
+                                            <table class="table table-hover align-middle mb-0" id="cart-table">
+                                                <thead class="small text-uppercase text-secondary">
+                                                    <tr>
+                                                        <th scope="col" class="text-start">Name</th>
+                                                        <th scope="col" class="text-end">Price</th>
+                                                        <th scope="col" class="text-center">Qty</th>
+                                                        <th scope="col" class="text-end">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                        <div class="row g-0 align-items-end mb-3 cart-payment-row">
+                                            <div class="col-12 col-md-4 col-lg-3">
+                                                <label for="amount-given" class="form-label small fw-semibold mb-1 text-start">Amount given</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">₱</span>
+                                                    <input type="number" class="form-control" id="amount-given" min="0" step="0.01" placeholder="0.00">
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-md-4 col-lg-3">
+                                                <label class="form-label small fw-semibold mb-1 text-start">Change</label>
+                                                <div class="d-flex align-items-center bg-light rounded px-3 py-2">
+                                                    <span class="text-muted small me-1">₱</span>
+                                                    <span id="change-amount" class="h5 mb-0 text-success fw-bold">0.00</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2 cart-actions">
+                                            <button class="btn btn-outline-info btn-sm" id="open-drawer-btn" onclick="openCashDrawerManually()" style="background-color: #007bff; color: white; border-color: #007bff;"><span class="material-icons me-1">payments</span> Open Drawer</button>
+                                            <button class="btn btn-warning" id="void-btn" style="background-color: #007bff; color: white; border-color: #007bff;">Clear Cart</button>
+                                            <button class="btn btn-success" id="checkout-btn">Checkout</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade" id="sales-history" role="tabpanel" aria-labelledby="sales-history-tab">
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4 gap-2">
+                                        <div>
+                                            <h3 class="h5 mb-1 text-light">Sales History</h3>
+                                            <p class="text-secondary small mb-0">Track completed transactions.</p>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-outline-danger btn-sm" id="void-sale-item-btn">Void Item</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive sales-history-scroll rounded-3 border border-secondary border-opacity-25">
+                                        <table class="table table-hover align-middle mb-0" id="sales-history-table">
+                                            <thead class="small text-uppercase text-secondary">
+                                                <tr>
+                                                    <th scope="col">Name</th>
+                                                    <th scope="col">Price</th>
+                                                    <th scope="col">Qty</th>
+                                                    <th scope="col">Category</th>
+                                                    <th scope="col">Paid</th>
+                                                    <th scope="col">Change</th>
+                                                    <th scope="col">Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade" id="add-expense" role="tabpanel" aria-labelledby="add-expense-tab">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                                        <div>
+                                            <h3 class="h5 mb-1 text-light">Add Expense</h3>
+                                            <p class="text-secondary small mb-0">Record additional store expenses.</p>
+                                        </div>
+                                    </div>
+                                    <div class="row justify-content-center">
+                                        <div class="col-12 col-md-8 col-lg-6">
+                                            <form id="expense-form" class="expense-card p-3 p-md-4 rounded-3">
+                                                <div class="mb-3">
+                                                    <label for="expense-desc" class="form-label small fw-semibold">Description</label>
+                                                    <input type="text" class="form-control form-control-sm" id="expense-desc" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="expense-cash" class="form-label small fw-semibold">Cash</label>
+                                                    <input type="number" class="form-control form-control-sm" id="expense-cash" step="0.01">
+                                                </div>
+                                                                                                <div class="d-grid">
+                                                    <button type="submit" class="btn btn-primary btn-sm fw-semibold">Add Expense</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade" id="expense-list" role="tabpanel" aria-labelledby="expense-list-tab">
+                                    <div style="width: 65%; margin: 0 auto;">
+                                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4 gap-2">
+                                            <div>
+                                                <h3 class="h5 mb-1 text-light">Expense List</h3>
+                                                <p class="text-secondary small mb-0">View all expenses with date filtering.</p>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                <input type="date" class="form-control form-control-sm" id="expense-list-date" style="width: auto; height: 31px;">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="refresh-expense-list-btn" style="height: 31px; display: flex; align-items: center; justify-content: center;">Refresh</button>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive expense-list-scroll rounded-3">
+                                            <table class="table table-hover align-middle mb-0" id="expense-list-table" style="border-collapse: separate; border-spacing: 0; width: 100%;">
+                                                <thead class="small text-uppercase text-secondary bg-light">
+                                                    <tr>
+                                                        <th scope="col" style="width: 200px; padding: 1.25rem 1.5rem; font-weight: 600; border-bottom: 2px solid #dee2e6; letter-spacing: 0.5px;">Date</th>
+                                                        <th scope="col" style="padding: 1.25rem 2rem 1.25rem 1.5rem; font-weight: 600; border-bottom: 2px solid #dee2e6; letter-spacing: 0.5px;">Description</th>
+                                                        <th scope="col" style="width: 140px; padding: 1.25rem 1.5rem; font-weight: 600; text-align: right; border-bottom: 2px solid #dee2e6; letter-spacing: 0.5px;">Cash</th>
+                                                        <th scope="col" style="width: 120px; padding: 1.25rem 1.5rem; font-weight: 600; text-align: center; border-bottom: 2px solid #dee2e6; letter-spacing: 0.5px;">View Payment</th>
+                                                        <th scope="col" style="width: 120px; padding: 1.25rem 1.5rem; font-weight: 600; text-align: center; border-bottom: 2px solid #dee2e6; letter-spacing: 0.5px;">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                        <div class="mt-3 text-center">
+                                            <small class="text-muted" id="expense-list-summary">No expenses found</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade" id="net-sale" role="tabpanel" aria-labelledby="net-sale-tab">
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4 gap-2">
+                                        <div>
+                                            <h3 class="h5 mb-1 text-light">Net Sale</h3>
+                                            <p class="text-secondary small mb-0">View net sales after expenses and voided items.</p>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <input type="date" class="form-control form-control-sm" id="net-sale-date" style="width: auto;">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="refresh-net-sale-btn">Refresh</button>
+                                        </div>
+                                    </div>
+                                    <div class="row justify-content-center">
+                                        <div class="col-12 col-md-8 col-lg-6">
+                                            <div class="card border-0 shadow-sm net-sale-card">
+                                                <div class="card-body p-3 p-md-4 text-center">
+                                                    <div class="mb-3">
+                                                        <small class="text-uppercase text-secondary fw-semibold">Net Sale Amount</small>
+                                                    </div>
+                                                    <div class="h2 text-success mb-0 fw-bold">₱ <span id="net-sale-amount">0.00</span></div>
+                                                    <div class="mt-3">
+                                                        <small class="text-muted">Gross: ₱<span id="net-gross-amount">0.00</span> | Expenses: ₱<span id="net-expenses-amount">0.00</span> | Voided: ₱<span id="net-voided-amount">0.00</span></small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade" id="gross-sale" role="tabpanel" aria-labelledby="gross-sale-tab">
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4 gap-2">
+                                        <div>
+                                            <h3 class="h5 mb-1 text-light">Gross Sale</h3>
+                                            <p class="text-secondary small mb-0">View total sales before deductions.</p>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <input type="date" class="form-control form-control-sm" id="gross-sale-date" style="width: auto;">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="refresh-gross-sale-btn">Refresh</button>
+                                        </div>
+                                    </div>
+                                    <div class="row justify-content-center">
+                                        <div class="col-12 col-md-8 col-lg-6">
+                                            <div class="card border-0 shadow-sm gross-sale-card">
+                                                <div class="card-body p-3 p-md-4 text-center">
+                                                    <div class="mb-3">
+                                                        <small class="text-uppercase text-secondary fw-semibold">Gross Sale Amount</small>
+                                                    </div>
+                                                    <div class="h2 text-primary mb-0 fw-bold">₱ <span id="gross-sale-amount">0.00</span></div>
+                                                    <div class="mt-3">
+                                                        <small class="text-muted">Total sales before expenses and voided items</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-muted small mt-2 mb-0">Tip: Show only the most important info in each row so cashiers can move faster.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="voidSaleItemModal" tabindex="-1" aria-labelledby="voidSaleItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="voidSaleItemModalLabel">Void Sale Items</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <input type="text" id="void-sale-search" class="form-control form-control-sm" placeholder="Search sales items..." style="max-width: 300px;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select-all-void-items">
+                                <label class="form-check-label small" for="select-all-void-items">
+                                    Select All
+                                </label>
+                            </div>
+                        </div>
+                        <div class="text-muted small mb-2">
+                            <span id="void-selection-count">0 items selected</span> | 
+                            Click items to select multiple, then confirm to void with restocking
+                        </div>
+                    </div>
+                    <div id="void-sale-item-list" class="list-group small" style="max-height: 300px; overflow-y: auto;"></div>
+                    <div class="text-muted small mt-2">
+                        <strong>Features:</strong> Auto-restocks inventory • Reverses sales data • Updates analytics • Records audit logs
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="void-sale-item-modal-confirm">Void Selected Items</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="addToCartModal" tabindex="-1" aria-labelledby="addToCartModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addToCartModalLabel">Add to Cart</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2 text-center">
+                        <div class="small text-muted mb-1">Item</div>
+                        <div id="add-to-cart-name" class="fw-semibold"></div>
+                    </div>
+                    <div class="mb-3 text-center">
+                        <img id="add-to-cart-image" src="" alt="Item image" class="img-fluid rounded shadow-sm" style="max-height: 220px; object-fit: cover; display: none; margin: 0 auto;">
+                    </div>
+                    <div class="mb-3 d-flex justify-content-between small">
+                        <span>Price: ₱<span id="add-to-cart-price">0</span></span>
+                        <span>Available: <span id="add-to-cart-stock">0</span></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add-to-cart-qty" class="form-label small fw-semibold">Quantity</label>
+                        <input type="number" class="form-control form-control-sm" id="add-to-cart-qty" min="1" value="1">
+                    </div>
+                    <div id="add-to-cart-status" class="small mt-1 text-warning" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="add-to-cart-proceed-btn">Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Premium Analytics Modal -->
+<div class="modal fade" id="analyticsModal" tabindex="-1" aria-labelledby="analyticsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="analyticsModalLabel"><span class="material-icons me-2">analytics</span> Advanced Analytics Dashboard</h5>
+                <div class="d-flex align-items-center">
+                    <small class="text-muted me-3" id="auto-refresh-indicator">
+                        <i class="fas fa-sync-alt fa-spin"></i> Auto-refresh: ON
+                    </small>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="analytics-date-picker" class="form-label small fw-semibold">Select Specific Date</label>
+                        <input type="date" class="form-control" id="analytics-date-picker">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">&nbsp;</label>
+                        <button class="btn btn-primary w-100" id="refresh-analytics-btn">Refresh Analytics</button>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">&nbsp;</label>
+                        <button class="btn btn-success w-100" id="export-date-data-btn">Export Date Data</button>
+                    </div>
+                </div>
+                
+                <!-- Date Specific Items Section -->
+                <div class="row mb-3" id="date-specific-section" style="display: none;">
+                    <div class="col-md-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="mb-3">� Items Sold Trend for <span id="selected-date-display">Selected Date</span></h6>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="card border-0 shadow-sm">
+                                            <div class="card-body p-3" style="height: 250px; overflow: hidden;">
+                                                <canvas id="itemsSoldTrendChart" style="width: 100%; height: 200px; display: block;"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-0 shadow-sm">
+                                            <div class="card-body">
+                                                <h6 class="text-primary mb-3">Summary</h6>
+                                                <div class="d-flex justify-content-between">
+                                                    <span>Total Items Sold:</span>
+                                                    <strong id="total-items-count">0</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6>Business Insights</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-primary mb-2">Gross Sales</h6>
+                                                <div class="h4 text-primary fw-bold">₱ <span id="analytics-gross-sales">0.00</span></div>
+                                                <small class="text-muted">Total revenue before costs</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-danger mb-2">Expense</h6>
+                                                <div class="h4 text-danger fw-bold">₱ <span id="analytics-total-expenses">0.00</span></div>
+                                                <small class="text-muted">Business expenses</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-primary mb-2">Gross Profit</h6>
+                                                <div class="h4 text-primary fw-bold">₱ <span id="analytics-gross-profit">0.00</span></div>
+                                                <small class="text-muted">Total Sales minus Cost of Goods</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-success mb-2">Net Profit</h6>
+                                                <div class="h4 text-success fw-bold">₱ <span id="analytics-net-profit">0.00</span></div>
+                                                <small class="text-muted">Sales - Cost - Expenses</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div id="peak-business-hours"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Loyalty Modal -->
+<div class="modal fade" id="loyaltyModal" tabindex="-1" aria-labelledby="loyaltyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loyaltyModalLabel">👥 Customer Loyalty Program</h5>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-primary me-2" id="loyalty-settings-btn" title="Loyalty Settings">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="tel" class="form-control" id="customer-phone" placeholder="Customer Phone">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="customer-name" placeholder="Customer Name">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" id="add-customer-btn">Add/Find Customer</button>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-body">
+                                <h6>Customer Information</h6>
+                                <div id="customer-info"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-body">
+                                <h6>Loyalty Tiers</h6>
+                                <div id="loyalty-tiers"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6>Available Rewards</h6>
+                                <div id="customer-rewards"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Forecast Modal -->
+<div class="modal fade" id="inventoryModal" tabindex="-1" aria-labelledby="inventoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryModalLabel">📦 Advanced Inventory Management</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" id="generate-forecast-btn">Generate Forecast</button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-success w-100" id="auto-order-btn">Auto-Order Low Stock</button>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6>Inventory Forecast & Alerts</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm" id="inventory-forecast-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Item</th>
+                                                <th>Current Stock</th>
+                                                <th>Daily Usage</th>
+                                                <th>Days Left</th>
+                                                <th>Suggested Order</th>
+                                                <th>Urgency</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loyalty Settings Modal -->
+<div class="modal fade" id="loyaltySettingsModal" tabindex="-1" aria-labelledby="loyaltySettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loyaltySettingsModalLabel"><span class="material-icons me-2">settings</span> Loyalty Tier Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Configure your loyalty program tiers. Adjust point requirements and discount percentages for each tier.
+                </div>
+                
+                <form id="loyalty-settings-form">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Tier Name</th>
+                                    <th>Icon</th>
+                                    <th>Points Required</th>
+                                    <th>Discount (%)</th>
+                                    <th>Color Theme</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="loyalty-tiers-settings">
+                                <!-- Tiers will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-success" id="add-tier-btn">
+                                <i class="fas fa-plus"></i> Add New Tier
+                            </button>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hardware Connect Modal -->
+<div class="modal fade" id="hardwareConnectModal" tabindex="-1" aria-labelledby="hardwareConnectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="hardwareConnectModalLabel"><span class="material-icons me-2">build</span> Hardware Connect</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 border rounded bg-light hardware-card">
+                                <h5 class="mb-3"><span class="material-icons me-2">payments</span> Cash Drawer</h5>
+                                <div class="mb-3">
+                                    <div id="cashdrawer-status-cashier" class="mb-2">
+                                        <span class="badge bg-secondary">Not Connected</span>
+                                    </div>
+                                    <select class="form-select form-select-sm mb-2" id="cashdrawer-port-cashier">
+                                        <option value="">Select Port</option>
+                                        <option value="COM1">COM1</option>
+                                        <option value="COM2">COM2</option>
+                                        <option value="COM3">COM3</option>
+                                        <option value="COM4">COM4</option>
+                                        <option value="USB">USB</option>
+                                    </select>
+                                </div>
+                                <div class="d-grid gap-1">
+                                    <button type="button" class="btn btn-primary btn-sm" id="connect-cashdrawer-btn-cashier">
+                                        Connect
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm d-none" id="test-cashdrawer-btn-cashier">
+                                        Test Open
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-sm d-none" id="disconnect-cashdrawer-btn-cashier">
+                                        Disconnect
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 border rounded bg-light hardware-card">
+                                <h5 class="mb-3">🧾 Receipt Printer</h5>
+                                <div class="mb-3">
+                                    <div id="printer-status-cashier" class="mb-2">
+                                        <span class="badge bg-secondary">Not Connected</span>
+                                    </div>
+                                    <select class="form-select form-select-sm mb-2" id="printer-port-cashier">
+                                        <option value="">Select Port</option>
+                                        <option value="USB">USB Printer</option>
+                                        <option value="COM1">COM1</option>
+                                        <option value="COM2">COM2</option>
+                                        <option value="COM3">COM3</option>
+                                        <option value="COM4">COM4</option>
+                                        <option value="Bluetooth">Bluetooth</option>
+                                        <option value="Network">Network Printer</option>
+                                    </select>
+                                    <input type="text" class="form-control form-control-sm mt-2" id="printer-name-cashier" placeholder="Printer Name">
+                                </div>
+                                <div class="d-grid gap-1">
+                                    <button type="button" class="btn btn-primary btn-sm" id="connect-printer-btn-cashier">
+                                        Connect
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm d-none" id="test-printer-btn-cashier">
+                                        Test Print
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-sm d-none" id="disconnect-printer-btn-cashier">
+                                        Disconnect
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 border rounded bg-light hardware-card">
+                                <h5 class="mb-3">📷 Barcode Scanner</h5>
+                                <div class="mb-3">
+                                    <div id="scanner-status-cashier" class="mb-2">
+                                        <span class="badge bg-secondary">Not Connected</span>
+                                    </div>
+                                    <select class="form-select form-select-sm mb-2" id="scanner-type-cashier">
+                                        <option value="">Select Scanner Type</option>
+                                        <option value="USB">USB Scanner</option>
+                                        <option value="Bluetooth">Bluetooth Scanner</option>
+                                        <option value="Camera">Camera Scanner</option>
+                                        <option value="Serial">Serial Scanner</option>
+                                    </select>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="scanner-auto-focus-cashier">
+                                        <label class="form-check-label small" for="scanner-auto-focus-cashier">
+                                            Auto-focus on scan
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-1">
+                                    <button type="button" class="btn btn-primary btn-sm" id="connect-scanner-btn-cashier">
+                                        Connect
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm d-none" id="test-scanner-btn-cashier">
+                                        Test Scanner
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-sm d-none" id="disconnect-scanner-btn-cashier">
+                                        Disconnect
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info text-center">
+                    <strong><span class="material-icons me-1">lightbulb</span> Tip:</strong> Connect your hardware devices to enable automatic cash drawer opening, receipt printing, and barcode scanning functionality.
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <h6><span class="material-icons me-2">analytics</span> Hardware Status</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="hardware-status-table-cashier">
+                                <thead>
+                                    <tr>
+                                        <th>Device</th>
+                                        <th>Status</th>
+                                        <th>Connection</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hardware-status-tbody-cashier">
+                                    <!-- Hardware status will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" id="test-all-hardware-btn-cashier">
+                    <span class="material-icons me-1">science</span>
+                    Test All
+                </button>
+                <button type="button" class="btn btn-outline-info" id="hardware-diagnostics-btn-cashier">
+                    <span class="material-icons me-1">search</span>
+                    Diagnostics
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Settings Modal -->
+<div class="modal fade" id="receiptSettingsModal" tabindex="-1" aria-labelledby="receiptSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="receiptSettingsModalLabel">🧾 Receipt Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Customize your receipt appearance, VAT settings, and add your brand identity.
+                </div>
+                
+                <form id="receipt-settings-form">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold mb-3">🏢 Brand Information</h6>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-brand-name" class="form-label small fw-semibold">Business Name</label>
+                                <input type="text" class="form-control" id="receipt-brand-name" placeholder="Your Business Name">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-address" class="form-label small fw-semibold">Address</label>
+                                <textarea class="form-control" id="receipt-address" rows="2" placeholder="Business Address"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-phone" class="form-label small fw-semibold">Phone Number</label>
+                                <input type="tel" class="form-control" id="receipt-phone" placeholder="Contact Number">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-brand-icon" class="form-label small fw-semibold">Brand Logo URL</label>
+                                <input type="url" class="form-control" id="receipt-brand-icon" placeholder="https://example.com/logo.png">
+                                <small class="text-muted">Enter URL of your brand logo or use file upload below</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-logo-upload" class="form-label small fw-semibold">Upload Logo</label>
+                                <input type="file" class="form-control" id="receipt-logo-upload" accept="image/*">
+                                <small class="text-muted">PNG, JPG up to 2MB</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold mb-3"><span class="material-icons me-2">receipt</span> Tax & Pricing</h6>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-vat-enabled" class="form-label small fw-semibold">Enable VAT</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="receipt-vat-enabled">
+                                    <label class="form-check-label" for="receipt-vat-enabled">
+                                        Include VAT in receipts
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-vat-rate" class="form-label small fw-semibold">VAT Rate (%)</label>
+                                <input type="number" class="form-control" id="receipt-vat-rate" min="0" max="100" step="0.1" value="12" placeholder="12">
+                                <small class="text-muted">Standard VAT rate (e.g., 12%)</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-vat-type" class="form-label small fw-semibold">VAT Display Type</label>
+                                <select class="form-select" id="receipt-vat-type">
+                                    <option value="inclusive">Inclusive (VAT included in price)</option>
+                                    <option value="exclusive">Exclusive (VAT added to price)</option>
+                                </select>
+                            </div>
+                            
+                            <h6 class="fw-semibold mb-3 mt-4">🎨 Receipt Design</h6>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-header-text" class="form-label small fw-semibold">Header Text</label>
+                                <input type="text" class="form-control" id="receipt-header-text" placeholder="Thank you for your purchase!">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-footer-text" class="form-label small fw-semibold">Footer Text</label>
+                                <textarea class="form-control" id="receipt-footer-text" rows="2" placeholder="Please come again!"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="receipt-theme" class="form-label small fw-semibold">Receipt Theme</label>
+                                <select class="form-select" id="receipt-theme">
+                                    <option value="classic">Classic (Black & White)</option>
+                                    <option value="modern">Modern (Colored Headers)</option>
+                                    <option value="minimal">Minimal (Clean & Simple)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="fw-semibold mb-3"><span class="material-icons me-2">visibility</span> Preview</h6>
+                            <div class="border rounded p-3 bg-light" style="font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto;">
+                                <div id="receipt-preview">
+                                    <div class="text-center mb-3">
+                                        <div style="height: 40px; width: 40px; background: #ddd; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                                            🏢
+                                        </div>
+                                        <strong>Your Business Name</strong><br>
+                                        <small>Business Address</small><br>
+                                        <small>Phone: Contact Number</small>
+                                    </div>
+                                    <hr>
+                                    <div class="mb-2">
+                                        <strong>Receipt #123</strong><br>
+                                        <small>Date: November 28, 2025 09:32 AM</small>
+                                    </div>
+                                    <hr>
+                                    <div class="mb-2">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span>Item Name x1</span>
+                                            <span>₱100.00</span>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                                        <span>Total:</span>
+                                        <span>₱100.00</span>
+                                    </div>
+                                    <hr>
+                                    <div class="text-center">
+                                        <small>Thank you for your purchase!</small><br>
+                                        <small>Please come again!</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-primary" id="test-receipt-btn">
+                                <span class="material-icons me-1">print</span>
+                                Test Receipt
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" id="reset-receipt-btn">
+                                <span class="material-icons me-1">refresh</span>
+                                Reset to Default
+                            </button>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cashier Password Change Modal -->
+<div class="modal fade" id="cashierPasswordChangeModal" tabindex="-1" aria-labelledby="cashierPasswordChangeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cashierPasswordChangeModalLabel">🔐 Change Cashier Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Change your cashier password for better security.
+                </div>
+                
+                <form id="cashier-password-change-form">
+                    <div class="mb-3">
+                        <label for="cashier-current-password" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="cashier-current-password" placeholder="Enter current password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cashier-new-password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="cashier-new-password" placeholder="Enter new password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cashier-confirm-password" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="cashier-confirm-password" placeholder="Confirm new password" required>
+                    </div>
+                    <div id="cashier-password-status" class="small" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirm-cashier-password-change">
+                    <i class="fas fa-key me-1"></i> Change Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expense Details Modal -->
+<div class="modal fade" id="expenseDetailsModal" tabindex="-1" aria-labelledby="expenseDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="expenseDetailsModalLabel">💸 Expense Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Date:</strong>
+                        <p id="expense-detail-date" class="mb-0"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
+                        <div id="expense-detail-status" class="mt-1"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p id="expense-detail-description" class="mb-0"></p>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Cash Amount:</strong>
+                        <p id="expense-detail-cash" class="mb-0 text-end"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Total Amount:</strong>
+                        <p id="expense-detail-total" class="mb-0 text-end fw-bold"></p>
+                    </div>
+                </div>
+                
+                <div class="border-top pt-3">
+                    <h6 class="mb-3">Payment Status</h6>
+                    <div id="payment-details-content">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                            No payment records found for this expense
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Progress Section -->
+                    <div id="payment-progress-section" class="mt-4" style="display: none;">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body p-4">
+                                <div class="text-center mb-4">
+                                    <h5 class="card-title mb-2">Payment Progress</h5>
+                                    <div class="d-flex justify-content-center align-items-baseline gap-3">
+                                        <span class="h2 text-primary fw-bold" id="paid-amount">₱0</span>
+                                        <span class="text-muted">of</span>
+                                        <span class="h4 text-muted" id="total-amount">₱0</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Visual Payment Bar -->
+                                <div class="mb-4">
+                                    <div class="position-relative">
+                                        <div class="progress" style="height: 40px; border-radius: 20px;">
+                                            <div id="payment-progress-bar" 
+                                                 class="progress-bar" 
+                                                 role="progressbar" 
+                                                 style="width: 0%; border-radius: 20px;">
+                                                <span id="payment-progress-text" class="fw-bold">0%</span>
+                                            </div>
+                                        </div>
+                                        <!-- Payment Markers -->
+                                        <div class="position-relative mt-2">
+                                            <div class="d-flex justify-content-between text-muted small">
+                                                <span>0%</span>
+                                                <span>25%</span>
+                                                <span>50%</span>
+                                                <span>75%</span>
+                                                <span>100%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Status Summary -->
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <div class="p-3">
+                                            <div class="h5 text-success mb-1" id="paid-percentage">0%</div>
+                                            <div class="small text-muted">Paid</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3">
+                                            <div class="h5 text-warning mb-1" id="remaining-amount">₱0</div>
+                                            <div class="small text-muted">Remaining</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3">
+                                            <div class="h5 text-info mb-1" id="payment-status">Pending</div>
+                                            <div class="small text-muted">Status</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="security-system.js"></script>
+    <script src="anti-cloning.js"></script>
+    <script src="code-obfuscator.js"></script>
+    <script src="license-manager.js"></script>
+    <script src="secure-auth.js"></script>
+    <script src="access-control.js"></script>
+    <script src="db.js"></script>
+    <script src="hardware.js"></script>
+    <script src="cashier.js"></script>
+    <script src="premium-functions.js"></script>
+    <script src="premium-handlers.js"></script>
+    <script src="cashier-settings.js"></script>
+</body>
+</html>

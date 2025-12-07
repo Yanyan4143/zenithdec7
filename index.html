@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Login</title>
+    <link rel="icon" href="ouroboros.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Security Headers (Note: Some headers like frame-ancestors and X-Frame-Options only work via HTTP headers) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://fonts.googleapis.com https://supabase.co https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://supabase.co ws://localhost:4000 http://localhost:4000 https://cdn.jsdelivr.net https://accounts.google.com;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=()">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            padding: 3rem;
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.6s ease-in;
+            position: relative;
+            padding-top: 4rem; /* space for overlay alert */
+        }
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        #app-alert-container {
+            position: absolute;
+            top: 0.75rem;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #app-alert-container .app-alert {
+            pointer-events: auto;
+        }
+        .form-control {
+            border-radius: 15px;
+            border: 1px solid #d1d5db;
+            padding: 0.75rem;
+            font-family: 'Inter', sans-serif;
+        }
+        .form-control:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+        }
+        .role-btn {
+            background: rgba(79, 70, 229, 0.1);
+            border: 2px solid #4f46e5;
+            color: #4f46e5;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .role-btn:hover {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 1.2rem;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Zenith Labs - POS</h2>
+        <div id="app-alert-container" class="mb-3"></div>
+        <script src="security-system.js"></script>
+        <script src="anti-cloning.js"></script>
+        <script src="code-obfuscator.js"></script>
+        <script src="license-manager.js"></script>
+        <script src="secure-auth.js"></script>
+        <script src="access-control.js"></script>
+        <script src="db.js"></script>
+        <script>
+            // Compatibility hash function for existing password system
+            async function hashPassword(password) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            function showNotification(message, type = 'info', duration = 3000) {
+                const container = document.getElementById('app-alert-container');
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} app-alert alert-dismissible fade show`;
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                container.appendChild(alert);
+                
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, duration);
+            }
+        </script>
+        <form id="login-form">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Role</label>
+                <div class="d-flex justify-content-center">
+                    <button type="button" class="btn role-btn" id="admin-role">Admin</button>
+                    <button type="button" class="btn role-btn" id="cashier-role">Cashier</button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-login">Login</button>
+        </form>
+    </div>
+    
+    <!-- New Device OTP Modal -->
+        <script>
+        function showNotification(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('app-alert-container');
+            if (!container) {
+                alert(message);
+                return;
+            }
+
+            // Quickly fade out any existing alerts when showing a new one
+            Array.from(container.children).forEach(existing => {
+                existing.classList.add('app-alert-fadeout');
+                setTimeout(() => {
+                    if (existing.parentNode) existing.parentNode.removeChild(existing);
+                }, 150);
+            });
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `app-alert app-alert-${type} mb-2`;
+            wrapper.innerHTML = `
+                <div class="app-alert-message">${message}</div>
+                <button type="button" class="app-alert-close" aria-label="Close">&times;</button>
+            `;
+            container.appendChild(wrapper);
+
+            const close = () => {
+                wrapper.classList.add('app-alert-fadeout');
+                setTimeout(() => {
+                    if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+                }, 150);
+            };
+
+            const closeBtn = wrapper.querySelector('.app-alert-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', close);
+            }
+
+            if (duration && duration > 0) {
+                setTimeout(close, duration);
+            }
+        }
+
+        async function hashPassword(password) {
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error('Secure hashing is not supported in this browser.');
+            }
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        let selectedRole = '';
+        
+        // OTP Generation System
+        class OTPManager {
+            constructor() {
+                this.otps = JSON.parse(localStorage.getItem('generated_otps') || '{}');
+                this.cleanupExpiredOTPs();
+            }
+            
+            generateOTP(length = 8) {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let otp = '';
+                for (let i = 0; i < length; i++) {
+                    otp += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return otp;
+            }
+            
+            createOTP(role, durationHours = 24) {
+                const otp = this.generateOTP();
+                const expiresAt = Date.now() + (durationHours * 60 * 60 * 1000);
+                
+                const otpData = {
+                    otp: otp,
+                    role: role,
+                    createdAt: Date.now(),
+                    expiresAt: expiresAt,
+                    used: false
+                };
+                
+                // Store OTP for the role
+                this.otps[otp] = otpData;
+                localStorage.setItem('generated_otps', JSON.stringify(this.otps));
+                
+                                
+                return otpData;
+            }
+            
+            validateOTP(role, enteredOTP) {
+                // Check if it's a generated OTP
+                const otpData = this.otps[enteredOTP.toUpperCase()];
+                
+                if (otpData && !otpData.used && Date.now() < otpData.expiresAt) {
+                    if (otpData.role === role) {
+                        // Mark as used
+                        otpData.used = true;
+                        this.otps[enteredOTP.toUpperCase()] = otpData;
+                        localStorage.setItem('generated_otps', JSON.stringify(this.otps));
+                        return true;
+                    }
+                }
+                
+                                
+                return false;
+            }
+            
+            cleanupExpiredOTPs() {
+                const now = Date.now();
+                let cleaned = false;
+                
+                // Clean generated OTPs
+                for (const [otp, data] of Object.entries(this.otps)) {
+                    if (now > data.expiresAt) {
+                        delete this.otps[otp];
+                        cleaned = true;
+                    }
+                }
+                
+                                
+                if (cleaned) {
+                    localStorage.setItem('generated_otps', JSON.stringify(this.otps));
+                }
+            }
+            
+            getActiveOTPs() {
+                this.cleanupExpiredOTPs();
+                const active = [];
+                const now = Date.now();
+                
+                for (const [otp, data] of Object.entries(this.otps)) {
+                    if (!data.used && now < data.expiresAt) {
+                        active.push({ ...data, remainingTime: data.expiresAt - now });
+                    }
+                }
+                
+                return active.sort((a, b) => b.expiresAt - a.expiresAt);
+            }
+        }
+        
+        const otpManager = new OTPManager();
+
+        // Device Detection System
+        function getDeviceFingerprint() {
+            const fingerprint = {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                platform: navigator.platform,
+                screen: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                colorDepth: screen.colorDepth,
+                pixelRatio: window.devicePixelRatio || 1,
+                date: new Date().toISOString().split('T')[0]
+            };
+            
+            // Create a simple hash
+            const fingerprintStr = JSON.stringify(fingerprint);
+            let hash = 0;
+            for (let i = 0; i < fingerprintStr.length; i++) {
+                const char = fingerprintStr.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            return Math.abs(hash).toString(36);
+        }
+
+        function isNewDevice() {
+            const fingerprint = getDeviceFingerprint();
+            const storedDevices = JSON.parse(localStorage.getItem('known_devices') || '{}');
+            
+            if (!storedDevices[fingerprint]) {
+                // Register this new device
+                storedDevices[fingerprint] = {
+                    firstSeen: new Date().toISOString(),
+                    lastSeen: new Date().toISOString()
+                };
+                localStorage.setItem('known_devices', JSON.stringify(storedDevices));
+                return true;
+            }
+            
+            // Update last seen
+            storedDevices[fingerprint].lastSeen = new Date().toISOString();
+            localStorage.setItem('known_devices', JSON.stringify(storedDevices));
+            return false;
+        }
+
+        function checkForNewDevice() {
+            // Temporary password functionality removed - device check disabled
+            console.log('🔓 Device check disabled - temporary password system removed');
+        }
+
+        
+        // Check for new device on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkForNewDevice();
+        });
+
+        document.getElementById('admin-role').addEventListener('click', () => {
+            selectedRole = 'admin';
+            document.getElementById('admin-role').classList.add('active');
+            document.getElementById('cashier-role').classList.remove('active');
+        });
+
+        document.getElementById('cashier-role').addEventListener('click', () => {
+            selectedRole = 'cashier';
+            document.getElementById('cashier-role').classList.add('active');
+            document.getElementById('admin-role').classList.remove('active');
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!selectedRole) {
+                showNotification('Please select a role (Admin or Cashier).', 'warning', 4000);
+                return;
+            }
+
+            const expectedUsername = selectedRole === 'admin' ? 'admin' : 'cashier';
+            if (username !== expectedUsername) {
+                showNotification('Invalid username for selected role.', 'danger', 4000);
+                return;
+            }
+
+            const hashKey = selectedRole === 'admin' ? 'user_admin_hash' : 'user_cashier_hash';
+            const storedHash = localStorage.getItem(hashKey);
+
+            try {
+                // Temporary password functionality removed - only check stored hash
+                if (!storedHash) {
+                    // First-time setup for this role - check for default password
+                    const defaultPassword = selectedRole === 'admin' ? 'admin123' : 'cashier123';
+                    
+                    if (password === defaultPassword) {
+                        // Set the default password as the stored password
+                        const newHash = await hashPassword(defaultPassword);
+                        localStorage.setItem(hashKey, newHash);
+                        console.log('Default password set and stored for first-time setup');
+                        showNotification(`Default ${selectedRole} password accepted! You can change it later.`, 'success', 3000);
+                        // Continue with login
+                        continueLogin();
+                    } else if (!password || password.length < 6) {
+                        showNotification('For first-time setup, please use the default password or choose a stronger password (at least 6 characters).', 'warning', 4000);
+                        return;
+                    } else {
+                        // User chose a custom password
+                        const newHash = await hashPassword(password);
+                        localStorage.setItem(hashKey, newHash);
+                        console.log('Custom password hash stored for first-time setup');
+                        // Continue with login
+                        continueLogin();
+                    }
+                } else {
+                    const enteredHash = await hashPassword(password);
+                    if (enteredHash !== storedHash) {
+                        showNotification('Invalid password.', 'danger', 4000);
+                        return;
+                    }
+                }
+
+                // Continue with login function
+                function continueLogin() {
+                    // Try to create secure session, fallback to simple session if it fails
+                    try {
+                        const session = createSecureSession(username, selectedRole);
+                        console.log('Secure session created successfully');
+                    } catch (sessionError) {
+                        console.warn('Secure session failed, using fallback:', sessionError);
+                        // Fallback to simple session
+                        const simpleSession = {
+                            role: selectedRole,
+                            user: username,
+                            issuedAt: Date.now(),
+                            expiresAt: Date.now() + 2 * 60 * 60 * 1000 // 2 hours
+                        };
+                        sessionStorage.setItem('session', JSON.stringify(simpleSession));
+                        console.log('Fallback session created');
+                    }
+
+                    console.log('Redirecting to:', selectedRole === 'admin' ? 'admin.html' : 'cashier.html');
+                    window.location.href = selectedRole === 'admin' ? 'admin.html' : 'cashier.html';
+                }
+
+                // Continue with normal login
+                continueLogin();
+            } catch (err) {
+                console.error('Login error:', err);
+                showNotification('Login failed: ' + err.message, 'danger', 4000);
+            }
+        });
+    </script>
+</body>
+</html>

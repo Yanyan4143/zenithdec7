@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Storage Test - ZenithLabs POS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        .status-info { background-color: #17a2b8; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="test-container">
+        <h2 class="mb-4">☁️ Cloud Storage Test</h2>
+        
+        <div class="mb-4">
+            <h5>Test Results</h5>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="mb-4">
+            <h5>Configuration Status</h5>
+            <div id="config-status"></div>
+        </div>
+        
+        <div class="mb-4">
+            <h5>Actions</h5>
+            <button class="btn btn-primary me-2" onclick="runTests()">Run All Tests</button>
+            <button class="btn btn-info me-2" onclick="testGoogleDrive()">Test Google Drive</button>
+            <button class="btn btn-warning me-2" onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div class="mb-4">
+            <h5>Manual Connection Test</h5>
+            <select id="provider-select" class="form-select mb-2">
+                <option value="">Choose Cloud Provider</option>
+                <option value="googledrive">📁 Google Drive</option>
+                <option value="dropbox">📦 Dropbox</option>
+                <option value="onedrive">☁️ OneDrive</option>
+                <option value="googcloud">🌐 Google Cloud</option>
+            </select>
+            <button class="btn btn-success" onclick="testConnection()">Test Connection</button>
+        </div>
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="cloud-storage.js"></script>
+    <script>
+        let testResults = [];
+        
+        function addResult(test, status, message, details = null) {
+            const result = {
+                test,
+                status,
+                message,
+                details,
+                timestamp: new Date().toISOString()
+            };
+            testResults.push(result);
+            displayResults();
+        }
+        
+        function displayResults() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = testResults.map(result => `
+                <div class="alert alert-${result.status === 'success' ? 'success' : result.status === 'error' ? 'danger' : 'warning'} alert-dismissible fade show" role="alert">
+                    <span class="status-indicator status-${result.status}"></span>
+                    <strong>${result.test}:</strong> ${result.message}
+                    ${result.details ? `<br><small class="text-muted">${result.details}</small>` : ''}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `).join('');
+        }
+        
+        function displayConfigStatus() {
+            const container = document.getElementById('config-status');
+            const manager = window.cloudStorageManager;
+            
+            if (!manager) {
+                container.innerHTML = '<div class="alert alert-danger">Cloud storage manager not initialized</div>';
+                return;
+            }
+            
+            const providers = manager.providers;
+            let html = '';
+            
+            Object.entries(providers).forEach(([key, config]) => {
+                const isDemo = config.clientId.includes('demo-') || 
+                              config.clientId === '395844779846-7q9jl8a6d0qgq7q8r7q8r7q8r7q8r7q8.apps.googleusercontent.com';
+                
+                html += `
+                    <div class="alert alert-${isDemo ? 'warning' : 'success'}">
+                        <strong>${config.name}</strong><br>
+                        Client ID: ${config.clientId.substring(0, 20)}...<br>
+                        Status: ${isDemo ? 'Demo credentials' : 'Production ready'}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        async function runTests() {
+            clearResults();
+            addResult('Initialization', 'info', 'Starting cloud storage tests...');
+            
+            // Test 1: Check if cloud storage manager is initialized
+            if (window.cloudStorageManager) {
+                addResult('Manager Initialization', 'success', 'Cloud storage manager initialized successfully');
+            } else {
+                addResult('Manager Initialization', 'error', 'Cloud storage manager not found');
+                return;
+            }
+            
+            // Test 2: Check provider configurations
+            const manager = window.cloudStorageManager;
+            const providers = manager.providers;
+            
+            if (Object.keys(providers).length > 0) {
+                addResult('Provider Configuration', 'success', `Found ${Object.keys(providers).length} cloud providers`);
+            } else {
+                addResult('Provider Configuration', 'error', 'No cloud providers configured');
+            }
+            
+            // Test 3: Check for demo vs production credentials
+            let hasProduction = false;
+            let hasDemo = false;
+            
+            Object.values(providers).forEach(config => {
+                if (config.clientId.includes('demo-') || 
+                    config.clientId === '395844779846-7q9jl8a6d0qgq7q8r7q8r7q8r7q8r7q8.apps.googleusercontent.com') {
+                    hasDemo = true;
+                } else {
+                    hasProduction = true;
+                }
+            });
+            
+            if (hasProduction) {
+                addResult('Credentials Status', 'success', 'Production credentials found');
+            } else if (hasDemo) {
+                addResult('Credentials Status', 'warning', 'Using demo credentials - configure for production use');
+            } else {
+                addResult('Credentials Status', 'error', 'No valid credentials found');
+            }
+            
+            // Test 4: Check required scripts
+            const scripts = [
+                { name: 'Google Identity Services', src: 'https://accounts.google.com/gsi/client' },
+                { name: 'Cloud Storage Module', src: 'cloud-storage.js' }
+            ];
+            
+            for (const script of scripts) {
+                const loaded = Array.from(document.scripts).some(s => s.src?.includes(script.src));
+                if (loaded) {
+                    addResult('Script Loading', 'success', `${script.name} loaded successfully`);
+                } else {
+                    addResult('Script Loading', 'error', `${script.name} not loaded`);
+                }
+            }
+            
+            // Test 5: Check OAuth callback page
+            try {
+                const response = await fetch('oauth-callback.html', { method: 'HEAD' });
+                if (response.ok) {
+                    addResult('OAuth Callback', 'success', 'OAuth callback page accessible');
+                } else {
+                    addResult('OAuth Callback', 'error', 'OAuth callback page not found');
+                }
+            } catch (error) {
+                addResult('OAuth Callback', 'error', 'OAuth callback page error: ' + error.message);
+            }
+            
+            addResult('Tests Complete', 'info', 'All tests completed. Review results above.');
+        }
+        
+        async function testGoogleDrive() {
+            addResult('Google Drive Test', 'info', 'Testing Google Drive connection...');
+            
+            const manager = window.cloudStorageManager;
+            if (!manager) {
+                addResult('Google Drive Test', 'error', 'Cloud storage manager not available');
+                return;
+            }
+            
+            const config = manager.providers.googledrive;
+            if (!config) {
+                addResult('Google Drive Test', 'error', 'Google Drive not configured');
+                return;
+            }
+            
+            try {
+                // Test if Google API is available
+                if (typeof google !== 'undefined' && google.accounts) {
+                    addResult('Google Drive Test', 'success', 'Google Identity Services loaded');
+                } else {
+                    addResult('Google Drive Test', 'warning', 'Google Identity Services not loaded - may need to wait');
+                }
+                
+                // Test credential format
+                if (config.clientId && config.clientId.length > 20) {
+                    addResult('Google Drive Test', 'success', 'Client ID format valid');
+                } else {
+                    addResult('Google Drive Test', 'error', 'Invalid Client ID format');
+                }
+                
+            } catch (error) {
+                addResult('Google Drive Test', 'error', 'Test failed: ' + error.message);
+            }
+        }
+        
+        async function testConnection() {
+            const provider = document.getElementById('provider-select').value;
+            if (!provider) {
+                alert('Please select a cloud provider first');
+                return;
+            }
+            
+            addResult('Connection Test', 'info', `Testing ${provider} connection...`);
+            
+            const manager = window.cloudStorageManager;
+            if (!manager) {
+                addResult('Connection Test', 'error', 'Cloud storage manager not available');
+                return;
+            }
+            
+            try {
+                // This will attempt to connect to the selected provider
+                await manager.connectCloudStorage();
+                addResult('Connection Test', 'success', 'Connection test initiated successfully');
+            } catch (error) {
+                addResult('Connection Test', 'error', 'Connection test failed: ' + error.message);
+            }
+        }
+        
+        function clearResults() {
+            testResults = [];
+            displayResults();
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                displayConfigStatus();
+                addResult('Page Load', 'info', 'Cloud storage test page loaded successfully');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
